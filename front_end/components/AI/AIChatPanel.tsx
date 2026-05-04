@@ -1,3 +1,4 @@
+'use client'
 import { useEffect, useRef } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import type { SessionMessage } from '../../types/compare'

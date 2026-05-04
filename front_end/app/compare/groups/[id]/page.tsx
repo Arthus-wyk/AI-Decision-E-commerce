@@ -1,19 +1,22 @@
+'use client'
+
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams } from 'next/navigation'
 
-import type { SessionData, SessionMessage } from '../../types/compare'
-import ProductCards from "../../components/AI/ProductCards.tsx";
-// import ComparisonTable from "../../components/AI/ComparisonTable.tsx";
-import AISummaryCard from "../../components/AI/AISummaryCard.tsx";
-import AIChatPanel from "../../components/AI/AIChatPanel.tsx";
+
 import axios from "axios";
 import { v4 as uuidv4 } from 'uuid';
+import {SessionData, SessionMessage} from "@/types/compare";
+import ProductCards from "@/components/AI/ProductCards";
+import AISummaryCard from "@/components/AI/AISummaryCard";
+import AIChatPanel from "@/components/AI/AIChatPanel";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api'
 
 export default function ChatPage() {
-    const { groupId } = useParams()
+    const params = useParams()
+    const groupId = params.groupId as string
 
     const [sessionId] = useState(groupId)
     const [userId] = useState('demo_user')
@@ -22,14 +25,26 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(false)
     const [session, setSession] = useState<SessionData | null>(null)
     const [messages, setMessages] = useState<SessionMessage[]>([])
-    const [sammary, setSammary] = useState<string>('')
+    const [summary, setSummary] = useState<string>('')
     const [winner, setWinner] = useState<string|null>(null)
+    const [isMobile, setIsMobile] = useState(false)
 
     const hasSession = useMemo(() => Boolean(session?.session_id), [session])
-    const isMobile = useMemo(() => window.innerWidth <= 900, [])
-
     const products = session?.products || []
 
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 900)
+        }
+
+        handleResize() // 初始设置
+        window.addEventListener('resize', handleResize)
+
+        return () => {
+            window.removeEventListener('resize', handleResize)
+        }
+    }, [])
 
     useEffect(() => {
         document.body.style.margin = '0'
@@ -38,7 +53,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (groupId) {
             loadSessionAndMessages(groupId)
-            loadSammary(groupId)
+            loadSummary(groupId)
             loadWinner(groupId)
         }
     }, [groupId])
@@ -81,44 +96,34 @@ export default function ChatPage() {
             setLoading(false)
         }
     }
-    const loadSammary=async (groupId:string)=>{
+
+    const loadSummary = async (groupId: string) => {
         try {
             const response = await axios.post(
                 `${API_BASE}/summary`,
-                {
-                    session_id: groupId,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }
+                { session_id: groupId },
+                { headers: { 'Content-Type': 'application/json' } }
             );
             const payload = response.data
             console.log(payload)
 
-            setSammary(payload.data)
+            setSummary(payload.data)
         } catch (error) {
             setStatus((error as Error).message)
         } finally {
             setLoading(false)
         }
     }
-    const loadWinner=async (groupId:string)=>{
+
+    const loadWinner = async (groupId: string) => {
         try {
             const response = await axios.post(
                 `${API_BASE}/session_logs`,
-                {
-                    session_id: groupId,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }
+                { session_id: groupId },
+                { headers: { 'Content-Type': 'application/json' } }
             );
             const payload = response.data
-            const current_winner=payload.logs.final_result.winner
+            const current_winner = payload.logs.final_result.winner
             if (current_winner) {
                 setWinner(current_winner)
             }
@@ -146,11 +151,12 @@ export default function ChatPage() {
                 {
                     id: id,
                     session_id: sessionId,
-                    role:'user',
-                    content:input,
-                    created_at:''
+                    role: 'user',
+                    content: input,
+                    created_at: ''
                 }
             ]);
+
             await apiFetch('/chat', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -160,7 +166,6 @@ export default function ChatPage() {
                     user_profile: {},
                 }),
             })
-
 
             await loadSessionAndMessages(sessionId)
             await loadWinner(sessionId)
@@ -219,7 +224,7 @@ export default function ChatPage() {
             <main
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: '70% 30%',
+                    gridTemplateColumns: isMobile ? '1fr' : '70% 30%', // 增加了移动端的栅格响应式处理
                     gap: '18px',
                     alignItems: 'start',
                 }}
@@ -229,7 +234,7 @@ export default function ChatPage() {
 
                     {/*<ComparisonTable products={products} />*/}
 
-                    <AISummaryCard summary={sammary} />
+                    <AISummaryCard summary={summary} />
                 </section>
 
                 <AIChatPanel

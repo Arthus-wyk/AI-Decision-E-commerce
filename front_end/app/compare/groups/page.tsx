@@ -1,7 +1,8 @@
-import {useEffect, useState} from 'react'
-import {useNavigate} from 'react-router-dom'
-import axios from 'axios'
+'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import axios from 'axios'
 
 type CompareGroup = {
     session_id: string
@@ -10,7 +11,7 @@ type CompareGroup = {
     created_at: string
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api'
 
 function getProductName(product: Record<string, unknown>, index: number) {
     return String(product.name || product.product_name || product.product_id || `Product ${index + 1}`)
@@ -34,7 +35,7 @@ function getProductImage(product: Record<string, unknown>) {
 }
 
 export default function CompareGroups() {
-    const navigate = useNavigate()
+    const router = useRouter()
 
     const [groups, setGroups] = useState<CompareGroup[]>([])
     const [loading, setLoading] = useState(false)
@@ -52,11 +53,8 @@ export default function CompareGroups() {
                 }
             })
 
-
             const payload = response.data
-
             console.log(payload)
-
             setGroups(payload.sessions || [])
         } catch (error) {
             console.log(error)
@@ -66,6 +64,8 @@ export default function CompareGroups() {
     }
 
     useEffect(() => {
+        // 在 Next.js 中，全局 body 样式通常推荐写在 app/globals.css 中
+        // 但这里保留你的逻辑以确保样式兼容
         document.body.style.margin = '0'
 
         async function init() {
@@ -86,26 +86,12 @@ export default function CompareGroups() {
                 background: 'linear-gradient(160deg, #eff4fb 0%, #f8fbff 55%, #e8f0ff 100%)',
             }}
         >
-            <header
-                style={{
-                    marginBottom: '20px',
-                }}
-            >
-                <h1
-                    style={{
-                        margin: 0,
-                        fontSize: '32px',
-                    }}
-                >
+            <header style={{ marginBottom: '20px' }}>
+                <h1 style={{ margin: 0, fontSize: '32px' }}>
                     Compare Groups
                 </h1>
 
-                <p
-                    style={{
-                        margin: '8px 0 0',
-                        color: '#445268',
-                    }}
-                >
+                <p style={{ margin: '8px 0 0', color: '#445268' }}>
                     View all existing product comparison groups.
                 </p>
             </header>
@@ -128,12 +114,7 @@ export default function CompareGroups() {
                         marginBottom: '16px',
                     }}
                 >
-                    <h2
-                        style={{
-                            margin: 0,
-                            fontSize: '18px',
-                        }}
-                    >
+                    <h2 style={{ margin: 0, fontSize: '18px' }}>
                         Existing Groups
                     </h2>
 
@@ -170,17 +151,12 @@ export default function CompareGroups() {
                         No compare groups found.
                     </div>
                 ) : (
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '12px',
-                        }}
-                    >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {groups.map((group) => (
                             <article
                                 key={group.session_id}
-                                onClick={() => navigate(`/compare/groups/${group.session_id}`)}
+                                // 4. 使用 router.push 进行路由跳转
+                                onClick={() => router.push(`/recommendations/comparisons/${group.session_id}`)}
                                 style={{
                                     border: '1px solid #d9e0ea',
                                     borderRadius: '14px',
@@ -212,13 +188,7 @@ export default function CompareGroups() {
                                             gap: '10px',
                                         }}
                                     >
-                                        <strong
-                                            style={{
-                                                fontSize: '16px',
-                                                color: '#172033',
-                                                wordBreak: 'break-all',
-                                            }}
-                                        >
+                                        <strong style={{ fontSize: '16px', color: '#172033', wordBreak: 'break-all' }}>
                                             {group.session_id}
                                         </strong>
 
@@ -233,27 +203,15 @@ export default function CompareGroups() {
                                                 flexShrink: 0,
                                             }}
                                         >
-                    {group.products?.length || 0} products
-                  </span>
+                                            {group.products?.length || 0} products
+                                        </span>
                                     </div>
 
-                                    <p
-                                        style={{
-                                            margin: 0,
-                                            fontSize: '14px',
-                                            color: '#445268',
-                                        }}
-                                    >
+                                    <p style={{ margin: 0, fontSize: '14px', color: '#445268' }}>
                                         User: {group.user_id || 'Unknown'}
                                     </p>
 
-                                    <p
-                                        style={{
-                                            margin: 0,
-                                            fontSize: '13px',
-                                            color: '#5d6d84',
-                                        }}
-                                    >
+                                    <p style={{ margin: 0, fontSize: '13px', color: '#5d6d84' }}>
                                         Created at: {group.created_at || 'N/A'}
                                     </p>
 
@@ -311,6 +269,7 @@ export default function CompareGroups() {
                                                     fontSize: '14px',
                                                 }}
                                             >
+                                                {/* 注意：如果图片域名是固定的，建议替换为 Next.js 的 <Image /> 组件以优化性能 */}
                                                 {imageUrl ? (
                                                     <img
                                                         src={imageUrl}
@@ -333,7 +292,6 @@ export default function CompareGroups() {
                     </div>
                 )}
             </section>
-
         </div>
     )
 }
