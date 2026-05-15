@@ -16,7 +16,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api'
 
 export default function ChatPage() {
     const params = useParams()
-    const groupId = params.groupId as string
+    const groupId = params.id as string // 改为 .id
 
     const [sessionId] = useState(groupId)
     const [userId] = useState('demo_user')

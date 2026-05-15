@@ -156,7 +156,7 @@ export default function CompareGroups() {
                             <article
                                 key={group.session_id}
                                 // 4. 使用 router.push 进行路由跳转
-                                onClick={() => router.push(`/recommendations/comparisons/${group.session_id}`)}
+                                onClick={() => router.push(`/compare/groups/${group.session_id}`)}
                                 style={{
                                     border: '1px solid #d9e0ea',
                                     borderRadius: '14px',
