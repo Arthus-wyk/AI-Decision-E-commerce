@@ -1,0 +1,147 @@
+from db.product_database import Product, SessionLocal, init_product_db
+
+
+PRODUCTS = [
+    {
+        "name": "Wireless Headphones Pro",
+        "slug": "wireless-headphones-pro",
+        "category": "Electronics",
+        "brand": "SoundMax",
+        "price": 299.0,
+        "short_description": "Noise-cancelling wireless headphones.",
+        "description": "High-quality wireless headphones with active noise cancellation, long battery life, and plush ear cushions for everyday listening.",
+        "stock_quantity": 20,
+        "image_url": "https://placehold.co/600x400?text=Wireless+Headphones+Pro",
+        "rating": 4.7,
+    },
+    {
+        "name": "Smart Watch",
+        "slug": "smart-watch",
+        "category": "Electronics",
+        "brand": "PulseTech",
+        "price": 199.0,
+        "short_description": "Fitness and notification tracking on your wrist.",
+        "description": "A lightweight smart watch with health tracking, phone notifications, customizable faces, and multi-day battery life.",
+        "stock_quantity": 18,
+        "image_url": "https://placehold.co/600x400?text=Smart+Watch",
+        "rating": 4.5,
+    },
+    {
+        "name": "Portable Speaker",
+        "slug": "portable-speaker",
+        "category": "Electronics",
+        "brand": "SoundMax",
+        "price": 89.0,
+        "short_description": "Compact Bluetooth speaker with rich sound.",
+        "description": "A portable Bluetooth speaker with water resistance, deep bass, and a durable carry-friendly design.",
+        "stock_quantity": 35,
+        "image_url": "https://placehold.co/600x400?text=Portable+Speaker",
+        "rating": 4.3,
+    },
+    {
+        "name": "Laptop Stand",
+        "slug": "laptop-stand",
+        "category": "Accessories",
+        "brand": "DeskFlow",
+        "price": 49.0,
+        "short_description": "Adjustable aluminum stand for better posture.",
+        "description": "An ergonomic laptop stand with adjustable height, sturdy aluminum construction, and a foldable profile.",
+        "stock_quantity": 42,
+        "image_url": "https://placehold.co/600x400?text=Laptop+Stand",
+        "rating": 4.6,
+    },
+    {
+        "name": "USB-C Hub",
+        "slug": "usb-c-hub",
+        "category": "Accessories",
+        "brand": "Portly",
+        "price": 59.0,
+        "short_description": "Expand your laptop with essential ports.",
+        "description": "A compact USB-C hub with HDMI, USB-A, SD card, and pass-through charging for flexible productivity.",
+        "stock_quantity": 27,
+        "image_url": "https://placehold.co/600x400?text=USB-C+Hub",
+        "rating": 4.4,
+    },
+    {
+        "name": "Gaming Mouse",
+        "slug": "gaming-mouse",
+        "category": "Gaming",
+        "brand": "ClickForge",
+        "price": 69.0,
+        "short_description": "Fast, precise mouse for competitive play.",
+        "description": "A responsive gaming mouse with adjustable DPI, programmable buttons, and low-latency wired performance.",
+        "stock_quantity": 0,
+        "image_url": "https://placehold.co/600x400?text=Gaming+Mouse",
+        "rating": 4.2,
+    },
+    {
+        "name": "Mechanical Keyboard",
+        "slug": "mechanical-keyboard",
+        "category": "Gaming",
+        "brand": "ClickForge",
+        "price": 129.0,
+        "short_description": "Tactile mechanical keyboard with backlighting.",
+        "description": "A compact mechanical keyboard with tactile switches, adjustable backlighting, and a durable frame for work or play.",
+        "stock_quantity": 14,
+        "image_url": "https://placehold.co/600x400?text=Mechanical+Keyboard",
+        "rating": 4.8,
+    },
+    {
+        "name": "Backpack",
+        "slug": "backpack",
+        "category": "Fashion",
+        "brand": "UrbanTrail",
+        "price": 79.0,
+        "short_description": "Everyday backpack with laptop protection.",
+        "description": "A clean, durable backpack with a padded laptop compartment, organized pockets, and water-resistant fabric.",
+        "stock_quantity": 23,
+        "image_url": "https://placehold.co/600x400?text=Backpack",
+        "rating": 4.1,
+    },
+    {
+        "name": "Desk Lamp",
+        "slug": "desk-lamp",
+        "category": "Home",
+        "brand": "GlowHaus",
+        "price": 39.0,
+        "short_description": "LED desk lamp with adjustable brightness.",
+        "description": "A minimalist LED desk lamp with touch controls, adjustable brightness, and a flexible neck for focused work.",
+        "stock_quantity": 31,
+        "image_url": "https://placehold.co/600x400?text=Desk+Lamp",
+        "rating": 4.0,
+    },
+    {
+        "name": "Fitness Tracker",
+        "slug": "fitness-tracker",
+        "category": "Health",
+        "brand": "PulseTech",
+        "price": 99.0,
+        "short_description": "Track activity, heart rate, and sleep.",
+        "description": "A slim fitness tracker that monitors steps, workouts, heart rate, sleep, and daily goals with a simple companion app.",
+        "stock_quantity": 16,
+        "image_url": "https://placehold.co/600x400?text=Fitness+Tracker",
+        "rating": 4.4,
+    },
+]
+
+
+def seed_products() -> None:
+    init_product_db()
+    db = SessionLocal()
+    try:
+        for product_data in PRODUCTS:
+            exists = (
+                db.query(Product)
+                .filter(Product.slug == product_data["slug"])
+                .first()
+            )
+            if exists is None:
+                db.add(Product(**product_data))
+        db.commit()
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    seed_products()
+    print("Seed data inserted.")
