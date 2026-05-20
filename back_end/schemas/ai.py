@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class Session(BaseModel):
-    session_id: str
     user_id: str
-    products: List[Dict[str, Any]] = Field(default_factory=list)
+    products: List[str]
+    name:str
 
 
 class CompareRequest(BaseModel):
@@ -34,12 +34,13 @@ class SessionMessageCreate(BaseModel):
 
 class AddProductRequest(BaseModel):
     session_id: str
-    products: List[Dict[str, Any]] = Field(default_factory=list)
+    user_id:str
+    product_id: str
 
 
 class RemoveProductRequest(BaseModel):
     session_id: str
-    product_ids: List[str] = Field(default_factory=list)
+    product_id: str
 
 class SammaryRequest(BaseModel):
     session_id: str

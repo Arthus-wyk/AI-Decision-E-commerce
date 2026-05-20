@@ -29,18 +29,13 @@ import json
 def products_to_str(products: list) -> str:
     return json.dumps(products, indent=2, ensure_ascii=False)
 
-def summary(product_content: list):
+def summary(product_content: list) -> str:
     llm_client = LLMClient()
-
-    user_prompt = f"""
-        Here are the products:
-        
-        {products_to_str(product_content)}
-        
-        Compare them and provide a recommendation.
-        """
+    user_payload = {
+        "products": product_content,
+    }
 
     return llm_client.invoke(
         system_prompt=SYSTEM_PROMPT,
-        user_payload=user_prompt
+        user_payload=user_payload,
     )

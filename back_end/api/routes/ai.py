@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
-
+from uuid import uuid4
+from db.product_database import SessionLocal
 from db.sqlite_store import (
-    add_products_to_session,
+    add_product_to_session,
     create_session_record,
     delete_session,
     get_latest_compare_result,
@@ -18,6 +19,7 @@ from schemas.ai import AddProductRequest, ChatRequest, CompareRequest, RemovePro
 from service.ai.graph import build_compare_graph
 from service.ai.llm import LLMClient
 from service.ai.sammary import summary
+from service.product.product_service import get_product_byId
 
 router = APIRouter()
 
@@ -34,11 +36,20 @@ def _run_compare(
         latest_compare_result: dict | None = None,
         force_recompare: bool = False,
 ):
+    products_list = []
+    db = SessionLocal()
+    try:
+        for product in products:
+            res = get_product_byId(db, product)
+            products_list.append(res)
+    finally:
+        db.close()
+
     initial_state = {
         "session_id": session_id,
         "user_query": user_query,
         "user_profile": user_profile,
-        "raw_products": products,
+        "raw_products": products_list,
         "chat_history": chat_history or [],
         "latest_compare_result": latest_compare_result or {},
         "force_recompare": force_recompare,
@@ -52,18 +63,21 @@ def _run_compare(
 
 @router.post("/create_session")
 def create_session(payload: Session):
+    session_id = str(uuid4())
     try:
         create_session_record(
-            session_id=payload.session_id,
+            session_id=session_id,
             user_id=payload.user_id,
             products=payload.products,
+            count=1,
+            name=payload.name
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Create session failed: {exc}")
 
     return {
         "message": "session saved",
-        "session_id": payload.session_id,
+        "session_id": session_id,
     }
 
 
@@ -87,7 +101,7 @@ def add_product(payload: AddProductRequest):
     try:
         if get_session(payload.session_id) is None:
             raise HTTPException(status_code=404, detail="Session not found.")
-        added_count = add_products_to_session(payload.session_id, payload.products)
+        added_count = add_product_to_session(payload.session_id, payload.product_id)
     except HTTPException:
         raise
     except Exception as exc:
@@ -105,7 +119,7 @@ def remove_product(payload: RemoveProductRequest):
     try:
         if get_session(payload.session_id) is None:
             raise HTTPException(status_code=404, detail="Session not found.")
-        removed_count = remove_products_from_session(payload.session_id, payload.product_ids)
+        removed_count = remove_products_from_session(payload.session_id, payload.product_id)
     except HTTPException:
         raise
     except Exception as exc:
@@ -240,7 +254,7 @@ def chat(payload: ChatRequest):
         save_session_message(
             session_id=payload.session_id,
             role="assistant",
-            content=final_result.get("summary", "") or "comparison completed",
+            content=final_result.get("message", "") or "comparison completed",
             extra={"final_result": final_result},
         )
     except Exception as exc:
@@ -256,11 +270,8 @@ def chat(payload: ChatRequest):
 def products_compare(payload: CompareRequest):
     try:
         if get_session(payload.session_id) is None:
-            create_session_record(
-                session_id=payload.session_id,
-                user_id="unknown",
-                products=payload.products,
-            )
+            raise HTTPException(status_code=500, detail=f"Session not found")
+
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Session preparation failed: {exc}")
 

@@ -26,19 +26,24 @@ class LLMClient:
             num_ctx=num_ctx,
         )
 
-    def invoke(self, system_prompt: str, user_payload: Dict[str, Any]) -> Dict[str, Any]:
+    def invoke(self, system_prompt: str, user_payload: Any) -> str:
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(
                 content=(
-                    f"Input payload:\n{json.dumps(user_payload, ensure_ascii=False, indent=2)}"
+                    f"Input payload:\n{json.dumps(user_payload, ensure_ascii=False, indent=2) if isinstance(user_payload, (dict, list)) else str(user_payload)}"
                 )
             ),
         ]
 
         response = self.model.invoke(messages)
         content = response.content
-        return content
+        if isinstance(content, list):
+            return "".join(
+                part.get("text", "") if isinstance(part, dict) else str(part)
+                for part in content
+            )
+        return str(content)
 
     def invoke_json(self, system_prompt: str, user_payload: Dict[str, Any]) -> Dict[str, Any]:
         """

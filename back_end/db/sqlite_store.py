@@ -21,9 +21,11 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
-                products_json TEXT NOT NULL,
+                products_list TEXT NOT NULL,
+                name TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                summary TEXT 
+                summary TEXT,
+                count NUMBER
             )
             """
         )
@@ -41,7 +43,7 @@ def init_db() -> None:
                 session_id TEXT NOT NULL,
                 user_query TEXT NOT NULL,
                 user_profile_json TEXT NOT NULL,
-                products_json TEXT NOT NULL,
+                products_list TEXT NOT NULL,
                 final_result_json TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (session_id) REFERENCES sessions(session_id)
@@ -77,30 +79,70 @@ def init_db() -> None:
         conn.commit()
 
 
-def create_session_record(session_id: str, user_id: str, products: List[Dict[str, Any]]) -> None:
-    products_json = json.dumps(products, ensure_ascii=False)
+def create_session_record(
+    session_id: str,
+    user_id: str,
+    products: List[str],
+    count: int,
+    name: str
+) -> None:
+
+    products_list = json.dumps(products, ensure_ascii=False)
+
     with _get_conn() as conn:
+
         conn.execute(
             """
-            INSERT INTO sessions (session_id, user_id, products_json)
-            VALUES (?, ?, ?)
-            ON CONFLICT(session_id) DO UPDATE SET
-                user_id = excluded.user_id,
-                products_json = excluded.products_json,
-                summary = NULL
+            INSERT INTO sessions (
+                session_id,
+                user_id,
+                products_list,
+                count,
+                name
+            )
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (session_id, user_id, products_json),
+            (
+                session_id,
+                user_id,
+                products_list,
+                count,
+                name
+            ),
         )
+
         conn.commit()
 
+def update_session_record(
+    session_id: str,
+    user_id: str,
+    products: List[str],
+    count: int
+) -> None:
 
-def _product_key(product: Dict[str, Any]) -> Optional[str]:
-    for key in ("product_id", "id", "sku", "item_id"):
-        value = product.get(key)
-        if value not in (None, ""):
-            return f"{key}:{value}"
-    return None
+    products_list = json.dumps(products, ensure_ascii=False)
 
+    with _get_conn() as conn:
+
+        conn.execute(
+            """
+            UPDATE sessions
+            SET
+                user_id = ?,
+                products_list = ?,
+                summary = NULL,
+                count = ?
+            WHERE session_id = ?
+            """,
+            (
+                user_id,
+                products_list,
+                count,
+                session_id
+            ),
+        )
+
+        conn.commit()
 
 def _product_identity_values(product: Dict[str, Any]) -> List[str]:
     values: List[str] = []
@@ -111,100 +153,103 @@ def _product_identity_values(product: Dict[str, Any]) -> List[str]:
     return values
 
 
-def add_products_to_session(session_id: str, products: List[Dict[str, Any]]) -> int:
-    if not products:
-        return 0
+def add_product_to_session(session_id: str, product: str) -> int:
 
     current_session = get_session(session_id)
     if current_session is None:
         return 0
 
     existing_products = list(current_session.get("products", []) or [])
+    current_count=current_session.get("count", 0) or 0
     merged_products = list(existing_products)
-    added_count = 0
 
-    existing_keys = {k for k in (_product_key(p) for p in existing_products) if k}
-    for product in products:
-        if not isinstance(product, dict) or not product:
-            continue
+    if product and product in merged_products:
+        return 0
+    merged_products.append(product)
 
-        key = _product_key(product)
-        if key and key in existing_keys:
-            continue
-        if key:
-            existing_keys.add(key)
-        merged_products.append(product)
-        added_count += 1
-
-    create_session_record(
+    update_session_record(
         session_id=session_id,
         user_id=current_session.get("user_id", "unknown"),
         products=merged_products,
+        count=current_count+1
     )
-    return added_count
+    return 1
 
 
-def remove_products_from_session(session_id: str, product_ids: List[str]) -> int:
-    target_ids = {str(pid) for pid in product_ids if str(pid).strip()}
-    if not target_ids:
+def remove_products_from_session(
+    session_id: str,
+    product_id: str
+) -> int:
+
+    target_id = str(product_id).strip()
+
+    if not target_id:
         return 0
 
     current_session = get_session(session_id)
+
     if current_session is None:
         return 0
 
-    existing_products = list(current_session.get("products", []) or [])
-    kept_products: List[Dict[str, Any]] = []
-    removed_count = 0
+    existing_products: List[str] = (
+        current_session.get("products", []) or []
+    )
 
-    for product in existing_products:
-        if not isinstance(product, dict):
-            kept_products.append(product)
-            continue
+    current_count = current_session.get("count", 0) or 0
 
-        identities = set(_product_identity_values(product))
-        if identities.intersection(target_ids):
-            removed_count += 1
-            continue
-        kept_products.append(product)
+    kept_products = [
+        product
+        for product in existing_products
+        if str(product).strip() != target_id
+    ]
+
+    removed_count = len(existing_products) - len(kept_products)
 
     if removed_count > 0:
-        create_session_record(
+        update_session_record(
             session_id=session_id,
             user_id=current_session.get("user_id", "unknown"),
             products=kept_products,
+            count=max(current_count - removed_count, 0)
         )
 
     return removed_count
-
 
 def get_sessions_list(user_id: str) -> List[Dict[str, Any]]:
     with _get_conn() as conn:
         rows = conn.execute(
             """
-            SELECT session_id, user_id, products_json, created_at, summary
+            SELECT session_id, user_id, products_list, created_at, name, count
             FROM sessions
             WHERE user_id = ?
             """,
             (user_id,),
         ).fetchall()
-        return [
-            {
+
+        sessions = []
+
+        for row in rows:
+
+            try:
+                products = json.loads(row["products_list"] or "[]")
+            except json.JSONDecodeError:
+                products = []
+
+            sessions.append({
                 "session_id": row["session_id"],
                 "user_id": row["user_id"],
-                "products": json.loads(row["products_json"]),
-                "created_at": row["created_at"],
-                "summary": row["summary"],
-            }
-            for row in rows
-        ]
+                "products": products,
+                "count": row["count"],
+                "name": row["name"]
+            })
 
+        return sessions
 
 def get_session(session_id: str) -> Optional[Dict[str, Any]]:
     with _get_conn() as conn:
         row = conn.execute(
             """
-            SELECT session_id, user_id, products_json, created_at, summary
+            SELECT session_id, user_id, products_list, created_at, summary,name,count
             FROM sessions
             WHERE session_id = ?
             """,
@@ -215,9 +260,11 @@ def get_session(session_id: str) -> Optional[Dict[str, Any]]:
         return {
             "session_id": row["session_id"],
             "user_id": row["user_id"],
-            "products": json.loads(row["products_json"]),
+            "products": json.loads(row["products_list"]),
             "created_at": row["created_at"],
             "summary": row["summary"],
+            "name": row["name"],
+            "count": row["count"],
         }
 
 
@@ -249,7 +296,7 @@ def save_compare_log(
                 session_id,
                 user_query,
                 user_profile_json,
-                products_json,
+                products_list,
                 final_result_json
             )
             VALUES (?, ?, ?, ?, ?)
@@ -271,7 +318,7 @@ def get_compare_log(session_id: str) -> dict | None:
                 session_id,
                 user_query,
                 user_profile_json,
-                products_json,
+                products_list,
                 final_result_json
             FROM compare_logs
             WHERE session_id = ?

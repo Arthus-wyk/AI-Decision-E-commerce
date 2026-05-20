@@ -236,11 +236,15 @@ def judge_comparability(state: CompareState, llm: LLMClient) -> Dict[str, Any]:
     }
 
     result = llm.invoke_json(COMPARABILITY_SYSTEM_PROMPT, payload)
+    raw_confidence = result.get("confidence", 0.0)
+    try:
+        confidence = float(raw_confidence if raw_confidence is not None else 0.0)
+    except (TypeError, ValueError):
+        confidence = 0.0
 
-    # 基础兜底
     comparability_result = {
         "is_comparable": bool(result.get("is_comparable", False)),
-        "confidence": float(result.get("confidence", 0.0) or 0.0),
+        "confidence": confidence,
         "reason": str(result.get("reason", "") or ""),
         "common_aspects": result.get("common_aspects", []) or [],
         "comparison_risks": result.get("comparison_risks", []) or [],

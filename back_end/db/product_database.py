@@ -1,7 +1,6 @@
 from collections.abc import Generator
-
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from datetime import datetime
 
 
@@ -38,7 +37,7 @@ def init_product_db() -> None:
     Base.metadata.create_all(bind=engine)
 
 
-def get_product_db() -> Generator:
+def get_product_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db

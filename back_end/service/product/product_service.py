@@ -77,6 +77,12 @@ def get_product_by_slug(db: Session, slug: str) -> Product | None:
         .filter(Product.slug == slug, Product.is_active.is_(True))
         .first()
     )
+def get_product_byId(db: Session, id: int) -> Product | None:
+    return (
+        db.query(Product)
+        .filter(Product.id == id, Product.is_active.is_(True))
+        .first()
+    )
 
 
 def get_categories(db: Session) -> list[str]:

@@ -63,3 +63,10 @@ def product_details(slug: str, db: Session = Depends(get_product_db)) -> Product
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+@router.get("/byId/{id}", response_model=ProductRead)
+def product_details_by_id(id: int, db: Session = Depends(get_product_db)) -> ProductRead:
+    product = product_service.get_product_byId(db, id)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product

@@ -1,16 +1,9 @@
 'use client'
 
+import { Product } from "@/types/product"
+
 type Props = {
-    products: {
-        name: string,
-        product_id: string,
-        fields: Record<string, unknown> & {
-            images?: string[]
-            price?: string
-            brand?: string
-            rating?: string | number
-        }
-    }[]
+    products: Product[]
     isMobile: boolean
     winner?: string | null
 }
@@ -56,12 +49,12 @@ export default function ProductCards({products, isMobile, winner}: Props) {
                             const normalizedWinner = winner?.trim().toLowerCase()
                             const isWinner =
                                 Boolean(normalizedWinner) &&
-                                (product.product_id.toLowerCase() === normalizedWinner ||
+                                (String(product.id).toLowerCase() === normalizedWinner ||
                                     product.name.trim().toLowerCase() === normalizedWinner)
 
                             return (
                         <article
-                            key={product.product_id}
+                            key={product.id}
                             style={{
                                 border: `${isWinner ? 2 : 1}px solid ${isWinner ? '#0b63d8' : '#e0e7f0'}`,
                                 borderRadius: '14px',
@@ -107,9 +100,9 @@ export default function ProductCards({products, isMobile, winner}: Props) {
                                     marginBottom: '12px',
                                 }}
                             >
-                                {product.fields.images ? (
+                                {product.image_url ? (
                                     <img
-                                        src={product.fields.images[0]}
+                                        src={product.image_url}
                                         alt={product.name}
                                         style={{
                                             width: '100%',
@@ -127,15 +120,15 @@ export default function ProductCards({products, isMobile, winner}: Props) {
                             </h3>
 
                             <p style={{margin: '0 0 6px', color: '#0b63d8', fontWeight: 700}}>
-                                Price: {product.fields.price || '-'}
+                                Price: {product.price || '-'}
                             </p>
 
                             <p style={{margin: '0 0 6px', color: '#445268'}}>
-                                Brand: {product.fields.brand || '-'}
+                                Brand: {product.brand || '-'}
                             </p>
 
                             <p style={{margin: 0, color: '#445268'}}>
-                                Rating: {product.fields.rating || '-'}
+                                Rating: {product.rating || '-'}
                             </p>
                         </article>
                             )

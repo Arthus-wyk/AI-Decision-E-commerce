@@ -1,16 +1,18 @@
-'use client'
+"use client"
 
-import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
-import { useParams } from 'next/navigation'
+import {useCallback, useEffect, useMemo, useState} from 'react'
+import type {FormEvent} from 'react'
+import {useParams} from 'next/navigation'
 
 
 import axios from "axios";
-import { v4 as uuidv4 } from 'uuid';
+import {v4 as uuidv4} from 'uuid';
 import {SessionData, SessionMessage} from "@/types/compare";
 import ProductCards from "@/components/AI/ProductCards";
 import AISummaryCard from "@/components/AI/AISummaryCard";
 import AIChatPanel from "@/components/AI/AIChatPanel";
+import {Product} from "@/types/product";
+import {getProductById} from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api'
 
@@ -26,11 +28,11 @@ export default function ChatPage() {
     const [session, setSession] = useState<SessionData | null>(null)
     const [messages, setMessages] = useState<SessionMessage[]>([])
     const [summary, setSummary] = useState<string>('')
-    const [winner, setWinner] = useState<string|null>(null)
+    const [winner, setWinner] = useState<string | null>(null)
     const [isMobile, setIsMobile] = useState(false)
+    const [product, setProduct] = useState<Product[]>([])
 
     const hasSession = useMemo(() => Boolean(session?.session_id), [session])
-    const products = session?.products || []
 
 
     useEffect(() => {
@@ -49,14 +51,6 @@ export default function ChatPage() {
     useEffect(() => {
         document.body.style.margin = '0'
     }, [])
-
-    useEffect(() => {
-        if (groupId) {
-            loadSessionAndMessages(groupId)
-            loadSummary(groupId)
-            loadWinner(groupId)
-        }
-    }, [groupId])
 
     async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
         const response = await fetch(`${API_BASE}${path}`, {
@@ -77,7 +71,7 @@ export default function ChatPage() {
         return payload as T
     }
 
-    async function loadSessionAndMessages(targetSessionId: string) {
+    const loadSessionAndMessages = useCallback(async (targetSessionId: string) => {
         setLoading(true)
         setStatus('')
 
@@ -86,23 +80,28 @@ export default function ChatPage() {
             const messagesResp = await apiFetch<{ messages: SessionMessage[] }>(
                 `/sessions/${targetSessionId}/messages`,
             )
-
+            const prods: Product[] = []
+            for (const id of sessionResp.session.products) {
+                const product = await getProductById(id)
+                prods.push(product)
+            }
             setSession(sessionResp.session)
             setMessages(messagesResp.messages || [])
+            setProduct(prods)
             setStatus('Session loaded.')
         } catch (error) {
             setStatus((error as Error).message)
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
-    const loadSummary = async (groupId: string) => {
+    const loadSummary = useCallback(async (groupId: string) => {
         try {
             const response = await axios.post(
                 `${API_BASE}/summary`,
-                { session_id: groupId },
-                { headers: { 'Content-Type': 'application/json' } }
+                {session_id: groupId},
+                {headers: {'Content-Type': 'application/json'}}
             );
             const payload = response.data
             console.log(payload)
@@ -113,14 +112,14 @@ export default function ChatPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
-    const loadWinner = async (groupId: string) => {
+    const loadWinner = useCallback(async (groupId: string) => {
         try {
             const response = await axios.post(
                 `${API_BASE}/session_logs`,
-                { session_id: groupId },
-                { headers: { 'Content-Type': 'application/json' } }
+                {session_id: groupId},
+                {headers: {'Content-Type': 'application/json'}}
             );
             const payload = response.data
             const current_winner = payload.logs.final_result.winner
@@ -132,7 +131,21 @@ export default function ChatPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        if (groupId) {
+            const timer = window.setTimeout(() => {
+                void loadSessionAndMessages(groupId)
+                void loadSummary(groupId)
+                void loadWinner(groupId)
+            }, 0)
+
+            return () => {
+                window.clearTimeout(timer)
+            }
+        }
+    }, [groupId, loadSessionAndMessages, loadSummary, loadWinner])
 
     async function handleSendChat(e: FormEvent) {
         e.preventDefault()
@@ -198,8 +211,8 @@ export default function ChatPage() {
                 }}
             >
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '30px' }}>AI Product Comparison</h1>
-                    <p style={{ margin: '8px 0 0', color: '#5d6d84' }}>
+                    <h1 style={{margin: 0, fontSize: '30px'}}>AI Product Comparison</h1>
+                    <p style={{margin: '8px 0 0', color: '#5d6d84'}}>
                         Compare selected products and ask AI for purchase advice.
                     </p>
                 </div>
@@ -229,12 +242,12 @@ export default function ChatPage() {
                     alignItems: 'start',
                 }}
             >
-                <section style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                    <ProductCards products={products} isMobile={isMobile} winner={winner} />
+                <section style={{display: 'flex', flexDirection: 'column', gap: '18px'}}>
+                    <ProductCards products={product} isMobile={isMobile} winner={winner}/>
 
                     {/*<ComparisonTable products={products} />*/}
 
-                    <AISummaryCard summary={summary} />
+                    <AISummaryCard summary={summary}/>
                 </section>
 
                 <AIChatPanel
