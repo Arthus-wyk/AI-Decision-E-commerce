@@ -57,16 +57,17 @@ def list_brands(db: Session = Depends(get_product_db)) -> list[str]:
     return product_service.get_brands(db)
 
 
-@router.get("/{slug}", response_model=ProductRead)
-def product_details(slug: str, db: Session = Depends(get_product_db)) -> ProductRead:
-    product = product_service.get_product_by_slug(db, slug)
+@router.get("/byId/{id}", response_model=ProductRead)
+def product_details_by_id(id: int, db: Session = Depends(get_product_db)) -> ProductRead:
+    product = product_service.get_product_byId(db, id)
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@router.get("/byId/{id}", response_model=ProductRead)
-def product_details_by_id(id: int, db: Session = Depends(get_product_db)) -> ProductRead:
-    product = product_service.get_product_byId(db, id)
+
+@router.get("/{slug}", response_model=ProductRead)
+def product_details(slug: str, db: Session = Depends(get_product_db)) -> ProductRead:
+    product = product_service.get_product_by_slug(db, slug)
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return product

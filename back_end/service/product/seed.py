@@ -122,6 +122,102 @@ PRODUCTS = [
         "image_url": "https://placehold.co/600x400?text=Fitness+Tracker",
         "rating": 4.4,
     },
+    {
+        "name": "4K Webcam",
+        "slug": "4k-webcam",
+        "category": "Electronics",
+        "brand": "ClearCast",
+        "price": 119.0,
+        "short_description": "Sharp video calls with auto light correction.",
+        "description": "A compact 4K webcam with autofocus, dual microphones, privacy shutter, and automatic low-light correction for meetings and streaming.",
+        "stock_quantity": 26,
+        "image_url": "https://placehold.co/600x400?text=4K+Webcam",
+        "rating": 4.5,
+    },
+    {
+        "name": "Ergonomic Office Chair",
+        "slug": "ergonomic-office-chair",
+        "category": "Home",
+        "brand": "DeskFlow",
+        "price": 249.0,
+        "short_description": "Supportive chair for long desk sessions.",
+        "description": "An adjustable office chair with lumbar support, breathable mesh, tilt control, and padded armrests for everyday work.",
+        "stock_quantity": 9,
+        "image_url": "https://placehold.co/600x400?text=Office+Chair",
+        "rating": 4.6,
+    },
+    {
+        "name": "Espresso Maker",
+        "slug": "espresso-maker",
+        "category": "Home",
+        "brand": "BrewNest",
+        "price": 179.0,
+        "short_description": "Compact espresso maker for home kitchens.",
+        "description": "A countertop espresso maker with a fast heat-up system, steam wand, and removable water tank for daily coffee routines.",
+        "stock_quantity": 12,
+        "image_url": "https://placehold.co/600x400?text=Espresso+Maker",
+        "rating": 4.3,
+    },
+    {
+        "name": "Running Shoes",
+        "slug": "running-shoes",
+        "category": "Fashion",
+        "brand": "StrideLab",
+        "price": 109.0,
+        "short_description": "Lightweight shoes for daily training.",
+        "description": "Breathable running shoes with cushioned midsoles, durable traction, and a stable heel fit for road workouts.",
+        "stock_quantity": 38,
+        "image_url": "https://placehold.co/600x400?text=Running+Shoes",
+        "rating": 4.4,
+    },
+    {
+        "name": "Yoga Mat",
+        "slug": "yoga-mat",
+        "category": "Health",
+        "brand": "BalanceWorks",
+        "price": 45.0,
+        "short_description": "Non-slip mat with comfortable cushioning.",
+        "description": "A durable yoga mat with a textured non-slip surface, balanced cushioning, and easy-roll construction for studio or home practice.",
+        "stock_quantity": 44,
+        "image_url": "https://placehold.co/600x400?text=Yoga+Mat",
+        "rating": 4.2,
+    },
+    {
+        "name": "Gaming Headset",
+        "slug": "gaming-headset",
+        "category": "Gaming",
+        "brand": "ClickForge",
+        "price": 89.0,
+        "short_description": "Surround sound headset with clear voice chat.",
+        "description": "A gaming headset with immersive drivers, a noise-reducing microphone, memory foam ear pads, and multiplatform compatibility.",
+        "stock_quantity": 19,
+        "image_url": "https://placehold.co/600x400?text=Gaming+Headset",
+        "rating": 4.5,
+    },
+    {
+        "name": "Tablet Air",
+        "slug": "tablet-air",
+        "category": "Electronics",
+        "brand": "SlateOne",
+        "price": 399.0,
+        "short_description": "Thin tablet for browsing, notes, and media.",
+        "description": "A lightweight tablet with a bright display, responsive stylus support, stereo speakers, and all-day battery life.",
+        "stock_quantity": 11,
+        "image_url": "https://placehold.co/600x400?text=Tablet+Air",
+        "rating": 4.7,
+    },
+    {
+        "name": "Travel Tumbler",
+        "slug": "travel-tumbler",
+        "category": "Accessories",
+        "brand": "UrbanTrail",
+        "price": 32.0,
+        "short_description": "Insulated tumbler for hot or cold drinks.",
+        "description": "A stainless steel travel tumbler with double-wall insulation, leak-resistant lid, and cup-holder friendly shape.",
+        "stock_quantity": 51,
+        "image_url": "https://placehold.co/600x400?text=Travel+Tumbler",
+        "rating": 4.1,
+    },
 ]
 
 
@@ -137,6 +233,9 @@ def seed_products() -> None:
             )
             if exists is None:
                 db.add(Product(**product_data))
+            else:
+                for key, value in product_data.items():
+                    setattr(exists, key, value)
         db.commit()
     finally:
         db.close()

@@ -4,17 +4,46 @@ import {useCallback, useEffect, useMemo, useState} from 'react'
 import type {FormEvent} from 'react'
 import {useParams} from 'next/navigation'
 
-
-import axios from "axios";
 import {v4 as uuidv4} from 'uuid';
 import {SessionData, SessionMessage} from "@/types/compare";
 import ProductCards from "@/components/AI/ProductCards";
 import AISummaryCard from "@/components/AI/AISummaryCard";
 import AIChatPanel from "@/components/AI/AIChatPanel";
 import {Product} from "@/types/product";
-import {getProductById} from "@/lib/api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api'
+const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8002";
+
+function buildClientUrl(path: string, params?: Record<string, unknown>): string {
+    const url = new URL(`${API_BASE_URL.replace(/\/$/, "")}${path}`);
+    Object.entries(params ?? {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+            url.searchParams.set(key, String(value));
+        }
+    });
+    return url.toString();
+}
+
+async function apiFetch<T>(path: string, init: RequestInit = {}, params?: Record<string, unknown>): Promise<T> {
+    const response = await fetch(buildClientUrl(path, params), {
+        ...init,
+        headers: {
+            Accept: "application/json",
+            ...(init.body ? {"Content-Type": "application/json"} : {}),
+            ...(init.headers ?? {}),
+        },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const detail = (payload as { detail?: string }).detail;
+        throw new Error(detail || `Request failed with status ${response.status}`);
+    }
+    return payload as T;
+}
+
+function getProductById(id: string): Promise<Product> {
+    return apiFetch<Product>(`/products/byId/${encodeURIComponent(id)}`);
+}
 
 export default function ChatPage() {
     const params = useParams()
@@ -52,25 +81,6 @@ export default function ChatPage() {
         document.body.style.margin = '0'
     }, [])
 
-    async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-        const response = await fetch(`${API_BASE}${path}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(init?.headers ?? {}),
-            },
-            ...init,
-        })
-
-        const payload = await response.json().catch(() => ({}))
-
-        if (!response.ok) {
-            const detail = (payload as { detail?: string }).detail
-            throw new Error(detail || `Request failed: ${response.status}`)
-        }
-
-        return payload as T
-    }
-
     const loadSessionAndMessages = useCallback(async (targetSessionId: string) => {
         setLoading(true)
         setStatus('')
@@ -98,12 +108,10 @@ export default function ChatPage() {
 
     const loadSummary = useCallback(async (groupId: string) => {
         try {
-            const response = await axios.post(
-                `${API_BASE}/summary`,
-                {session_id: groupId},
-                {headers: {'Content-Type': 'application/json'}}
-            );
-            const payload = response.data
+            const payload = await apiFetch<{ data: string }>('/summary', {
+                method: 'POST',
+                body: JSON.stringify({session_id: groupId}),
+            })
             console.log(payload)
 
             setSummary(payload.data)
@@ -116,12 +124,10 @@ export default function ChatPage() {
 
     const loadWinner = useCallback(async (groupId: string) => {
         try {
-            const response = await axios.post(
-                `${API_BASE}/session_logs`,
-                {session_id: groupId},
-                {headers: {'Content-Type': 'application/json'}}
-            );
-            const payload = response.data
+            const payload = await apiFetch<{ logs: { final_result: { winner?: string } } }>('/session_logs', {
+                method: 'POST',
+                body: JSON.stringify({session_id: groupId}),
+            })
             const current_winner = payload.logs.final_result.winner
             if (current_winner) {
                 setWinner(current_winner)

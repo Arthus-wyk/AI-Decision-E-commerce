@@ -1,172 +1,101 @@
-"use client";
+import { Suspense } from "react";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-
-import { ProductFilter } from "@/components/product/ProductFilter";
+import { getFavorites } from "@/actions/favorites";
+import { CatalogControls } from "@/components/product/CatalogControls";
+import { PaginationControls } from "@/components/product/PaginationControls";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { ProductSearchBar } from "@/components/product/ProductSearchBar";
 import { getBrands, getCategories, getProducts } from "@/lib/api";
-import type { Product, ProductListResponse, ProductQueryParams } from "@/types/product";
+import type { ProductQueryParams } from "@/types/product";
 
 const PAGE_SIZE = 12;
 
-export default function ProductsPage() {
-  const [filters, setFilters] = useState<ProductQueryParams>({
-    sort: "newest",
-    page: 1,
+type ProductsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function valueOf(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function parseParams(params: Record<string, string | string[] | undefined>): ProductQueryParams {
+  return {
+    q: valueOf(params.q),
+    category: valueOf(params.category),
+    brand: valueOf(params.brand),
+    min_price: valueOf(params.min_price),
+    max_price: valueOf(params.max_price),
+    in_stock: valueOf(params.in_stock) === "true" ? true : undefined,
+    sort: (valueOf(params.sort) as ProductQueryParams["sort"]) ?? "newest",
+    page: Number(valueOf(params.page) ?? "1"),
     page_size: PAGE_SIZE,
-  });
-  const [products, setProducts] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [brands, setBrands] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  };
+}
 
-  const page = filters.page ?? 1;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  useEffect(() => {
-    let isCurrent = true;
-
-    Promise.all([getCategories(), getBrands()])
-      .then(([nextCategories, nextBrands]) => {
-        if (!isCurrent) {
-          return;
-        }
-        setCategories(nextCategories);
-        setBrands(nextBrands);
-      })
-      .catch(() => {
-        if (isCurrent) {
-          setError("Failed to load filters. Please try again later.");
-        }
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isCurrent = true;
-
-    setIsLoading(true);
-    setError(null);
-
-    getProducts(filters)
-      .then((response: ProductListResponse) => {
-        if (!isCurrent) {
-          return;
-        }
-        setProducts(response.items);
-        setTotal(response.total);
-      })
-      .catch(() => {
-        if (!isCurrent) {
-          return;
-        }
-        setProducts([]);
-        setTotal(0);
-        setError("Failed to load products. Please try again later.");
-      })
-      .finally(() => {
-        if (isCurrent) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [filters]);
-
-  const handleSearch = useCallback((q: string) => {
-    setFilters((current) => ({ ...current, q: q || undefined, page: 1 }));
-  }, []);
-
-  const handleFilterChange = useCallback((nextFilters: ProductQueryParams) => {
-    setFilters({
-      ...nextFilters,
-      page: nextFilters.page ?? 1,
-      page_size: PAGE_SIZE,
-    });
-  }, []);
-
-  const resultText = useMemo(() => {
-    if (isLoading) {
-      return "Loading products...";
-    }
-    return `${total} product${total === 1 ? "" : "s"} found`;
-  }, [isLoading, total]);
+async function Catalog({ params }: { params: ProductQueryParams }) {
+  const [products, favorites] = await Promise.all([getProducts(params), getFavorites()]);
+  const totalPages = Math.max(1, Math.ceil(products.total / PAGE_SIZE));
 
   return (
-    <main className="page-shell">
-      <div className="page-title-row">
+    <>
+      <div className="mb-4 text-sm font-extrabold text-slate-500">
+        <span>{products.total} product{products.total === 1 ? "" : "s"} found</span>
+      </div>
+      <ProductGrid products={products.items} favoriteIds={favorites.map((product) => product.id)} />
+      {products.total > products.page_size ? (
+        <PaginationControls page={products.page} totalPages={totalPages} />
+      ) : null}
+    </>
+  );
+}
+
+async function FilterControls() {
+  const [categories, brands] = await Promise.all([getCategories(), getBrands()]);
+  return <CatalogControls categories={categories} brands={brands} />;
+}
+
+export default function ProductsPage({ searchParams }: ProductsPageProps) {
+  return (
+    <main className="w-full px-4 py-7 md:px-8 md:py-8">
+      <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1>Product Catalog</h1>
-          <p>{resultText}</p>
+          <h1 className="text-3xl font-extrabold tracking-normal text-slate-950 md:text-4xl">Product Catalog</h1>
+          <p className="mt-2 text-sm text-slate-500">Search, filter, save favorites, and build a cart.</p>
         </div>
       </div>
 
-      <div className="catalog-layout">
-        <ProductFilter
-          categories={categories}
-          brands={brands}
-          filters={filters}
-          onChange={handleFilterChange}
-        />
+      <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <Suspense fallback={<div className="min-h-[420px] rounded-lg border border-slate-200 bg-white shadow-sm" />}>
+          <FilterControls />
+        </Suspense>
 
-        <section className="catalog-main" aria-label="Product results">
-          <div className="toolbar-card">
-            <ProductSearchBar value={filters.q ?? ""} onChange={handleSearch} />
-          </div>
-
-          {error ? (
-            <div className="state-panel">
-              <strong>{error}</strong>
-              Backend may not be running yet.
-            </div>
-          ) : isLoading ? (
-            <div className="state-panel">
-              <strong>Loading products...</strong>
-              Fetching the latest catalog items.
-            </div>
-          ) : (
-            <>
-              <ProductGrid products={products} />
-              <div className="pagination-row">
-                <button
-                  className="secondary-button"
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() =>
-                    setFilters((current) => ({ ...current, page: Math.max(1, page - 1) }))
-                  }
-                >
-                  Previous
-                </button>
-                <span>
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() =>
-                    setFilters((current) => ({
-                      ...current,
-                      page: Math.min(totalPages, page + 1),
-                    }))
-                  }
-                >
-                  Next
-                </button>
-              </div>
-            </>
-          )}
+        <section className="min-w-0" aria-label="Product results">
+          <Suspense fallback={<ProductGridSkeleton />}>
+            <AsyncCatalog searchParams={searchParams} />
+          </Suspense>
         </section>
       </div>
     </main>
+  );
+}
+
+async function AsyncCatalog({ searchParams }: ProductsPageProps) {
+  const params = parseParams(await searchParams);
+  return <Catalog params={params} />;
+}
+
+function ProductGridSkeleton() {
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div className="min-h-[320px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" key={index}>
+          <div className="aspect-[3/2] animate-pulse bg-slate-200" />
+          <div className="grid gap-3 p-4">
+            <div className="h-4 w-1/2 animate-pulse rounded-full bg-slate-200" />
+            <div className="h-5 animate-pulse rounded-full bg-slate-200" />
+            <div className="h-4 animate-pulse rounded-full bg-slate-200" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
