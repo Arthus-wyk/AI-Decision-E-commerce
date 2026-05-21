@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { getFavorites } from "@/actions/favorites";
+import { ShoppingAssistantSheet } from "@/components/AI/ShoppingAssistantSheet";
 import { CatalogControls } from "@/components/product/CatalogControls";
 import { PaginationControls } from "@/components/product/PaginationControls";
 import { ProductGrid } from "@/components/product/ProductGrid";
@@ -61,6 +62,7 @@ export default function ProductsPage({ searchParams }: ProductsPageProps) {
           <h1 className="text-3xl font-extrabold tracking-normal text-slate-950 md:text-4xl">Product Catalog</h1>
           <p className="mt-2 text-sm text-slate-500">Search, filter, save favorites, and build a cart.</p>
         </div>
+        <ShoppingAssistantSheet />
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">

@@ -766,6 +766,82 @@ textarea:focus {
   font-weight: 800;
 }
 
+.assistant-chat-sheet {
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  max-width: 520px;
+  width: min(100%, 520px);
+}
+
+.assistant-thread {
+  background: #f8fbff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  min-height: 280px;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.assistant-empty,
+.assistant-status,
+.assistant-tool-note {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.assistant-message {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  max-width: 92%;
+  padding: 12px;
+}
+
+.assistant-message.user {
+  background: #eaf2ff;
+  border-color: #c8daf4;
+  justify-self: end;
+}
+
+.assistant-message.assistant {
+  background: #ffffff;
+  justify-self: start;
+}
+
+.assistant-message-role {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.assistant-message p,
+.draft-box p {
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.assistant-chat-form {
+  display: grid;
+  gap: 10px;
+}
+
+.assistant-chat-form label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.assistant-chat-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .skeleton {
   animation: pulse 1.3s ease-in-out infinite;
   background: linear-gradient(90deg, #eef2f7, #dfe7f1, #eef2f7);

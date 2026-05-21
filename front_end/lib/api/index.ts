@@ -8,16 +8,3 @@ export {
   getProductBySlug,
   getProducts,
 } from "./products";
-export {
-  createCompareSession,
-  getHydratedCompareSessions,
-  getSessions,
-  hydrateCompareSession,
-  joinCompareSession,
-} from "./compare";
-export type {
-  CreateCompareSessionResponse,
-  HydratedCompareSession,
-  HydratedSessionProduct,
-  SessionListResponse,
-} from "./compare";

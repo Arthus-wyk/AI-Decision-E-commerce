@@ -8,7 +8,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "AI Decision Commerce",
-  description: "E-commerce catalog with cart, account, comparison, and AI shopping support.",
+  description: "E-commerce catalog with cart, account, and AI shopping support.",
 };
 
 export default function RootLayout({
@@ -41,7 +41,6 @@ async function SiteHeader() {
       </Link>
       <nav className="flex items-center gap-4 text-sm font-bold text-slate-500 md:gap-6" aria-label="Primary navigation">
         <Link className="transition hover:text-slate-950" href="/products">Products</Link>
-        <Link className="transition hover:text-slate-950" href="/compare/groups">Compare</Link>
         <Link className="transition hover:text-slate-950" href="/account">{user ? "Account" : "Login"}</Link>
       </nav>
     </header>
@@ -56,7 +55,6 @@ function HeaderSkeleton() {
       </Link>
       <nav className="flex items-center gap-4 text-sm font-bold text-slate-500 md:gap-6" aria-label="Primary navigation">
         <span>Products</span>
-        <span>Compare</span>
         <span>Account</span>
       </nav>
     </header>

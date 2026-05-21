@@ -43,8 +43,3 @@ export type CartDraft = {
   quantity: number;
   rationale: string;
 };
-
-export type ShopAssistantResponse = {
-  message: string;
-  cart_draft?: CartDraft | null;
-};
