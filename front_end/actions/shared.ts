@@ -1,4 +1,14 @@
 import { cookies } from "next/headers";
+import { z } from "zod";
+
+import type { ActionState } from "@/types/action-state";
+
+export function actionError(error: unknown, fallback: string): ActionState {
+  if (error instanceof z.ZodError) {
+    return { ok: false, message: error.issues[0]?.message ?? fallback };
+  }
+  return { ok: false, message: error instanceof Error ? error.message : fallback };
+}
 
 export async function cookieStore() {
   return cookies();

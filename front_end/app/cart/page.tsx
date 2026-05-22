@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { clearCartAction, getCart, removeCartItemAction, updateCartItemAction } from "@/actions/cart";
+import { getCart } from "@/actions/cart";
+import { CartClearDialog } from "@/components/CartClearDialog";
+import { CartQuantityForm } from "@/components/CartQuantityForm";
+import { CartRemoveItemDialog } from "@/components/CartRemoveItemDialog";
+import { Button } from "@/components/ui/button";
 
 const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -30,7 +34,9 @@ async function CartContent() {
       {cart.items.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
           <strong className="mb-2 block text-slate-950">Your cart is empty.</strong>
-          <Link className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-bold text-white transition hover:bg-blue-800" href="/products">Browse products</Link>
+          <Button asChild className="mt-4">
+            <Link href="/products">Browse products</Link>
+          </Button>
         </div>
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -43,24 +49,13 @@ async function CartContent() {
                   <p className="mt-1 text-sm text-slate-500">{item.product.brand} {item.product.category}</p>
                   <strong className="mt-2 block text-slate-950">{formatter.format(item.product.price)}</strong>
                 </div>
-                <form action={updateCartItemAction} className="grid gap-2">
-                  <input type="hidden" name="product_id" value={item.product.id} />
-                  <label className="text-sm font-bold text-slate-500" htmlFor={`quantity-${item.product.id}`}>Qty</label>
-                  <input
-                    className="min-h-10 rounded-lg border border-slate-200 px-2 text-sm outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                    id={`quantity-${item.product.id}`}
-                    name="quantity"
-                    type="number"
-                    min="0"
-                    max={Math.max(item.product.stock_quantity, item.quantity)}
-                    defaultValue={item.quantity}
-                  />
-                  <button className="inline-flex min-h-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm font-bold text-slate-950 hover:bg-slate-200" type="submit">Update</button>
-                </form>
-                <form action={removeCartItemAction}>
-                  <input type="hidden" name="product_id" value={item.product.id} />
-                  <button className="inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-sm font-bold text-blue-700 hover:bg-blue-50" type="submit">Remove</button>
-                </form>
+                <CartQuantityForm
+                  productId={item.product.id}
+                  productName={item.product.name}
+                  quantity={item.quantity}
+                  max={Math.max(item.product.stock_quantity, item.quantity)}
+                />
+                <CartRemoveItemDialog productId={item.product.id} productName={item.product.name} />
               </article>
             ))}
           </section>
@@ -71,10 +66,10 @@ async function CartContent() {
               <span>Subtotal</span>
               <strong>{formatter.format(cart.subtotal)}</strong>
             </div>
-            <Link className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-bold text-white transition hover:bg-blue-800" href="/checkout">Checkout</Link>
-            <form action={clearCartAction}>
-              <button className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-100 px-4 text-sm font-bold text-slate-950 transition hover:bg-slate-200" type="submit">Clear Cart</button>
-            </form>
+            <Button asChild className="w-full">
+              <Link href="/checkout">Checkout</Link>
+            </Button>
+            <CartClearDialog />
           </aside>
         </div>
       )}

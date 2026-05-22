@@ -1,11 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { apiFetch } from "@/lib/api";
 import type { Cart } from "@/types/commerce";
 
-import { authHeaders, formValue, getGuestId } from "./shared";
+import type { ActionState } from "@/types/action-state";
+
+import { actionError, authHeaders, formValue, getGuestId } from "./shared";
+
+const cartItemSchema = z.object({
+  productId: z.coerce.number().int().positive("Choose a valid product."),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1.").max(99, "Quantity must be 99 or less."),
+});
+
+const cartQuantitySchema = z.object({
+  productId: z.coerce.number().int().positive("Choose a valid product."),
+  quantity: z.coerce.number().int().min(0, "Quantity cannot be negative.").max(99, "Quantity must be 99 or less."),
+});
 
 export async function getCart(): Promise<Cart> {
   const headers = await authHeaders();
@@ -21,54 +34,80 @@ export async function getCart(): Promise<Cart> {
   ).catch(() => ({ items: [], subtotal: 0, count: 0 }));
 }
 
-export async function addToCartAction(formData: FormData) {
-  const headers = await authHeaders();
-  const productId = Number(formValue(formData, "product_id"));
-  const quantity = Number(formValue(formData, "quantity") || "1");
-  await apiFetch<Cart>("/cart/items", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      product_id: productId,
-      quantity,
-      guest_id: headers.Authorization ? undefined : await getGuestId(),
-    }),
-  });
-  revalidatePath("/", "layout");
+export async function addToCartAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { productId, quantity } = cartItemSchema.parse({
+      productId: formValue(formData, "product_id"),
+      quantity: formValue(formData, "quantity") || "1",
+    });
+    const headers = await authHeaders();
+    await apiFetch<Cart>("/cart/items", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        product_id: productId,
+        quantity,
+        guest_id: headers.Authorization ? undefined : await getGuestId(),
+      }),
+    });
+    revalidatePath("/", "layout");
+    return { ok: true, message: "Added to cart.", href: "/cart", hrefLabel: "Go to cart" };
+  } catch (error) {
+    return actionError(error, "Could not add this product to cart.");
+  }
 }
 
-export async function updateCartItemAction(formData: FormData) {
-  const headers = await authHeaders();
-  const productId = Number(formValue(formData, "product_id"));
-  const quantity = Number(formValue(formData, "quantity"));
-  await apiFetch<Cart>(`/cart/items/${productId}`, {
-    method: "PATCH",
-    headers,
-    body: JSON.stringify({
-      quantity,
-      guest_id: headers.Authorization ? undefined : await getGuestId(),
-    }),
-  });
-  revalidatePath("/", "layout");
+export async function updateCartItemAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { productId, quantity } = cartQuantitySchema.parse({
+      productId: formValue(formData, "product_id"),
+      quantity: formValue(formData, "quantity"),
+    });
+    const headers = await authHeaders();
+    await apiFetch<Cart>(`/cart/items/${productId}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        quantity,
+        guest_id: headers.Authorization ? undefined : await getGuestId(),
+      }),
+    });
+    revalidatePath("/", "layout");
+    return { ok: true, message: quantity === 0 ? "Item removed." : "Cart updated.", href: "/cart", hrefLabel: "View cart" };
+  } catch (error) {
+    return actionError(error, "Could not update the cart.");
+  }
 }
 
-export async function removeCartItemAction(formData: FormData) {
-  const headers = await authHeaders();
-  const productId = Number(formValue(formData, "product_id"));
-  await apiFetch<Cart>(
-    `/cart/items/${productId}`,
-    { method: "DELETE", headers },
-    headers.Authorization ? undefined : { guest_id: await getGuestId() },
-  );
-  revalidatePath("/", "layout");
+export async function removeCartItemAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const productId = z.coerce.number().int().positive().parse(formValue(formData, "product_id"));
+    const headers = await authHeaders();
+    await apiFetch<Cart>(
+      `/cart/items/${productId}`,
+      { method: "DELETE", headers },
+      headers.Authorization ? undefined : { guest_id: await getGuestId() },
+    );
+    revalidatePath("/", "layout");
+    return { ok: true, message: "Item removed from cart.", href: "/cart", hrefLabel: "View cart" };
+  } catch (error) {
+    return actionError(error, "Could not remove this item.");
+  }
 }
 
-export async function clearCartAction() {
-  const headers = await authHeaders();
-  await apiFetch<Cart>("/cart", {
-    method: "DELETE",
-    headers,
-    body: JSON.stringify({ guest_id: headers.Authorization ? undefined : await getGuestId() }),
-  });
-  revalidatePath("/", "layout");
+export async function clearCartAction(_state: ActionState, _formData: FormData): Promise<ActionState> {
+  void _state;
+  void _formData;
+  try {
+    const headers = await authHeaders();
+    await apiFetch<Cart>("/cart", {
+      method: "DELETE",
+      headers,
+      body: JSON.stringify({ guest_id: headers.Authorization ? undefined : await getGuestId() }),
+    });
+    revalidatePath("/", "layout");
+    return { ok: true, message: "Cart cleared." };
+  } catch (error) {
+    return actionError(error, "Could not clear the cart.");
+  }
 }

@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { Heart, ShoppingCart } from "lucide-react";
 
 import { addToCartAction } from "@/actions/cart";
 import { getFavorites, toggleFavoriteAction } from "@/actions/favorites";
-import { ShoppingAssistantSheet } from "@/components/AI/ShoppingAssistantSheet";
+import { ActionForm } from "@/components/ActionForm";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { getProductBySlug } from "@/lib/api";
 
 const formatter = new Intl.NumberFormat("en-US", {
@@ -19,9 +23,9 @@ type ProductDetailsPageProps = {
 export default function ProductDetailsPage({ params }: ProductDetailsPageProps) {
   return (
     <main className="w-full px-4 py-7 md:px-8 md:py-8">
-      <Link className="mb-5 inline-block font-extrabold text-blue-700 hover:text-blue-800" href="/products">
-        Back to products
-      </Link>
+      <Button asChild className="mb-5" variant="ghost">
+        <Link href="/products">Back to products</Link>
+      </Button>
       <Suspense fallback={<ProductDetailSkeleton />}>
         <ProductDetail params={params} />
       </Suspense>
@@ -62,22 +66,23 @@ async function ProductDetail({ params }: ProductDetailsPageProps) {
         {product.rating ? <div className="font-extrabold text-amber-700">Rating {product.rating.toFixed(1)}</div> : null}
         <p className="text-sm leading-7 text-slate-500">{product.description}</p>
         <div className="grid gap-3">
-          <form action={addToCartAction} className="grid gap-2">
+          <ActionForm action={addToCartAction} className="grid gap-2">
             <input type="hidden" name="product_id" value={product.id} />
-            <label className="text-sm font-bold text-slate-500" htmlFor="quantity">Quantity</label>
-            <input className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" id="quantity" name="quantity" type="number" min="1" max="99" defaultValue="1" />
-            <button className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-bold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={!inStock}>
+            <Label htmlFor="quantity">Quantity</Label>
+            <Input id="quantity" name="quantity" type="number" min="1" max="99" defaultValue="1" />
+            <Button type="submit" disabled={!inStock}>
+              <ShoppingCart />
               Add to Cart
-            </button>
-          </form>
-          <form action={toggleFavoriteAction}>
+            </Button>
+          </ActionForm>
+          <ActionForm action={toggleFavoriteAction}>
             <input type="hidden" name="product_id" value={product.id} />
             <input type="hidden" name="favorite" value={String(favorite)} />
-            <button className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-100 px-4 text-sm font-bold text-slate-950 transition hover:bg-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200" type="submit">
+            <Button className="w-full" variant="outline" type="submit">
+              <Heart className={favorite ? "fill-current" : ""} />
               {favorite ? "Remove Favorite" : "Save Favorite"}
-            </button>
-          </form>
-          <ShoppingAssistantSheet product={product} />
+            </Button>
+          </ActionForm>
         </div>
       </section>
     </div>

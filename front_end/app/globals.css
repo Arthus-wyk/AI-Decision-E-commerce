@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
   --background: #f6f7f9;
@@ -960,4 +961,13 @@ textarea:focus {
   .cart-item img {
     width: 100%;
   }
+}
+
+[data-sonner-toast][data-styled="true"] [data-content] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+[data-sonner-toast][data-styled="true"] [data-button] {
+  margin-left: auto !important;
 }

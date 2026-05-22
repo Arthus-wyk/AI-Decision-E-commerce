@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { Heart, ShoppingCart, Star } from "lucide-react";
 
 import { addToCartAction } from "@/actions/cart";
 import { toggleFavoriteAction } from "@/actions/favorites";
+import { ActionForm } from "@/components/ActionForm";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import type { Product } from "@/types/product";
 
 type ProductCardProps = {
@@ -19,9 +23,9 @@ export function ProductCard({ product, favorite = false }: ProductCardProps) {
   const inStock = product.stock_quantity > 0;
 
   return (
-    <article className="flex min-h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-xl">
+    <Card className="flex min-h-full flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-xl">
       <Link className="block" href={`/products/${product.slug}`}>
-        <div className="aspect-[3/2] overflow-hidden border-b border-slate-200 bg-slate-100">
+        <div className="aspect-[3/2] overflow-hidden border-b border-blue-100 bg-blue-50">
           <img className="h-full w-full object-cover" src={imageUrl} alt={product.name} />
         </div>
       </Link>
@@ -46,7 +50,10 @@ export function ProductCard({ product, favorite = false }: ProductCardProps) {
           <div>
             <span className="block text-xl font-extrabold text-slate-950">{formatter.format(product.price)}</span>
             {product.rating ? (
-              <span className="mt-1 block text-xs font-extrabold text-amber-700">Rating {product.rating.toFixed(1)}</span>
+              <span className="mt-1 flex items-center gap-1 text-xs font-extrabold text-amber-700">
+                <Star className="h-3.5 w-3.5 fill-current" />
+                {product.rating.toFixed(1)}
+              </span>
             ) : null}
           </div>
           <span
@@ -58,30 +65,35 @@ export function ProductCard({ product, favorite = false }: ProductCardProps) {
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <form action={addToCartAction}>
+          <ActionForm action={addToCartAction}>
             <input type="hidden" name="product_id" value={product.id} />
             <input type="hidden" name="quantity" value="1" />
-            <button
-              className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-blue-700 px-3 text-sm font-bold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            <Button
+              className="w-full"
+              size="sm"
               type="submit"
               disabled={!inStock}
             >
+              <ShoppingCart />
               Add to cart
-            </button>
-          </form>
-          <form action={toggleFavoriteAction}>
+            </Button>
+          </ActionForm>
+          <ActionForm action={toggleFavoriteAction}>
             <input type="hidden" name="product_id" value={product.id} />
             <input type="hidden" name="favorite" value={String(favorite)} />
-            <button
-              className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm font-bold text-slate-950 transition hover:bg-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200"
+            <Button
+              className="w-full"
+              variant="outline"
+              size="sm"
               type="submit"
               aria-label="Toggle favorite"
             >
+              <Heart className={favorite ? "fill-current" : ""} />
               {favorite ? "Saved" : "Save"}
-            </button>
-          </form>
+            </Button>
+          </ActionForm>
         </div>
       </div>
-    </article>
+    </Card>
   );
 }

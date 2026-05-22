@@ -1,7 +1,14 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { Loader2, RotateCcw } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type CatalogControlsProps = {
   categories: string[];
@@ -13,156 +20,187 @@ const sortOptions = [
   ["price_asc", "Price: Low to High"],
   ["price_desc", "Price: High to Low"],
   ["rating_desc", "Rating"],
-];
+] as const;
+
+const ALL_VALUE = "__all__";
 
 export function CatalogControls({ categories, brands }: CatalogControlsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
+  const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState(params.get("q") ?? "");
+  const [minPrice, setMinPrice] = useState(params.get("min_price") ?? "");
+  const [maxPrice, setMaxPrice] = useState(params.get("max_price") ?? "");
 
   const current = useMemo(() => new URLSearchParams(params.toString()), [params]);
 
-  function navigate(next: URLSearchParams) {
+  const navigate = useCallback((next: URLSearchParams) => {
     next.set("page", "1");
     const qs = next.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
-  }
+    startTransition(() => {
+      router.push(qs ? `${pathname}?${qs}` : pathname);
+    });
+  }, [pathname, router]);
 
-  function update(key: string, value: string | boolean) {
+  const update = useCallback((key: string, value: string | boolean) => {
     const next = new URLSearchParams(current.toString());
-    if (value === "" || value === false) {
+    if (value === "" || value === false || value === ALL_VALUE) {
       next.delete(key);
     } else {
       next.set(key, String(value));
     }
     navigate(next);
-  }
+  }, [current, navigate]);
 
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    update("q", query.trim());
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if ((params.get("q") ?? "") !== query.trim()) {
+        update("q", query.trim());
+      }
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [params, query, update]);
+
+  function applyPrice(key: "min_price" | "max_price", value: string) {
+    if ((params.get(key) ?? "") !== value.trim()) {
+      update(key, value.trim());
+    }
   }
 
   return (
-    <aside className="sticky top-20 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" aria-label="Catalog filters">
-      <div className="border-b border-slate-200 bg-slate-50 p-4">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-950">Filters</h2>
-          <p className="mt-1 text-sm leading-5 text-slate-500">Refine the backend catalog query.</p>
+    <aside className="sticky top-20 overflow-hidden rounded-lg border border-blue-100 bg-white shadow-sm" aria-label="Catalog filters">
+      <div className="border-b border-blue-100 bg-blue-50 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-extrabold text-blue-950">Filters</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-500">Refine the backend catalog query.</p>
+          </div>
+          {pending ? <Loader2 className="h-5 w-5 animate-spin text-blue-700" aria-label="Loading filters" /> : null}
         </div>
       </div>
-      <form className="grid gap-4 p-4" onSubmit={submitSearch}>
+      <div className="grid gap-4 p-4">
         <div className="grid gap-2">
-          <label className="text-sm font-bold text-slate-500" htmlFor="catalog-search">Search</label>
-          <div className="flex gap-2">
-            <input
-              className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-              id="catalog-search"
-              type="search"
-              value={query}
-              placeholder="Search products"
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            <button className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-bold text-white transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100" type="submit">
-              Search
-            </button>
-          </div>
+          <Label htmlFor="catalog-search">Search</Label>
+          <Input
+            id="catalog-search"
+            type="search"
+            value={query}
+            placeholder="Search products"
+            onChange={(event) => setQuery(event.target.value)}
+          />
         </div>
 
         <div className="grid gap-2">
-          <label className="text-sm font-bold text-slate-500" htmlFor="category">Category</label>
-          <select
-            className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-            id="category"
-            value={params.get("category") ?? ""}
-            onChange={(event) => update("category", event.target.value)}
-          >
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
+          <Label htmlFor="category">Category</Label>
+          <Select value={params.get("category") ?? ALL_VALUE} onValueChange={(value) => update("category", value)}>
+            <SelectTrigger id="category">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VALUE}>All categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-2">
-          <label className="text-sm font-bold text-slate-500" htmlFor="brand">Brand</label>
-          <select
-            className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-            id="brand"
-            value={params.get("brand") ?? ""}
-            onChange={(event) => update("brand", event.target.value)}
-          >
-            <option value="">All brands</option>
-            {brands.map((brand) => (
-              <option key={brand} value={brand}>
-                {brand}
-              </option>
-            ))}
-          </select>
+          <Label htmlFor="brand">Brand</Label>
+          <Select value={params.get("brand") ?? ALL_VALUE} onValueChange={(value) => update("brand", value)}>
+            <SelectTrigger id="brand">
+              <SelectValue placeholder="All brands" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VALUE}>All brands</SelectItem>
+              {brands.map((brand) => (
+                <SelectItem key={brand} value={brand}>
+                  {brand}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
           <div className="grid gap-2">
-            <label className="text-sm font-bold text-slate-500" htmlFor="min-price">Min price</label>
-            <input
-              className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            <Label htmlFor="min-price">Min price</Label>
+            <Input
               id="min-price"
               min="0"
               type="number"
-              value={params.get("min_price") ?? ""}
-              onChange={(event) => update("min_price", event.target.value)}
+              value={minPrice}
+              onChange={(event) => setMinPrice(event.target.value)}
+              onBlur={() => applyPrice("min_price", minPrice)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyPrice("min_price", minPrice);
+                }
+              }}
             />
           </div>
           <div className="grid gap-2">
-            <label className="text-sm font-bold text-slate-500" htmlFor="max-price">Max price</label>
-            <input
-              className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            <Label htmlFor="max-price">Max price</Label>
+            <Input
               id="max-price"
               min="0"
               type="number"
-              value={params.get("max_price") ?? ""}
-              onChange={(event) => update("max_price", event.target.value)}
+              value={maxPrice}
+              onChange={(event) => setMaxPrice(event.target.value)}
+              onBlur={() => applyPrice("max_price", maxPrice)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyPrice("max_price", maxPrice);
+                }
+              }}
             />
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <span className="text-sm font-extrabold text-slate-500">Availability</span>
-          <label className="flex items-center justify-between gap-3 text-sm font-bold text-slate-950" htmlFor="in-stock">
-            <span>In stock</span>
-            <input
-              className="h-5 w-5 rounded border-slate-300 accent-blue-700"
-              id="in-stock"
-              type="checkbox"
-              checked={params.get("in_stock") === "true"}
-              onChange={(event) => update("in_stock", event.target.checked)}
-            />
-          </label>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
+          <Label htmlFor="in-stock">In stock</Label>
+          <Checkbox
+            id="in-stock"
+            checked={params.get("in_stock") === "true"}
+            onCheckedChange={(checked) => update("in_stock", checked === true)}
+          />
         </div>
 
         <div className="grid gap-2">
-          <label className="text-sm font-bold text-slate-500" htmlFor="sort">Sort</label>
-          <select
-            className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-            id="sort"
-            value={params.get("sort") ?? "newest"}
-            onChange={(event) => update("sort", event.target.value)}
-          >
-            {sortOptions.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <Label htmlFor="sort">Sort</Label>
+          <Select value={params.get("sort") ?? "newest"} onValueChange={(value) => update("sort", value)}>
+            <SelectTrigger id="sort">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <button className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 px-4 text-sm font-bold text-slate-950 transition hover:bg-slate-200 focus:outline-none focus:ring-4 focus:ring-slate-200" type="button" onClick={() => router.push(pathname)}>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={() => {
+            setQuery("");
+            setMinPrice("");
+            setMaxPrice("");
+            startTransition(() => router.push(pathname));
+          }}
+        >
+          <RotateCcw />
           Reset filters
-        </button>
-      </form>
+        </Button>
+      </div>
     </aside>
   );
 }

@@ -4,6 +4,9 @@ import { Suspense } from "react";
 import { getCart } from "@/actions/cart";
 import { checkoutAction } from "@/actions/orders";
 import { getCurrentUser } from "@/actions/user";
+import { CheckoutForm } from "@/components/forms/CheckoutForm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -31,42 +34,19 @@ async function CheckoutContent() {
       {cart.items.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
           <strong className="mb-2 block text-slate-950">Your cart is empty.</strong>
-          <Link className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-bold text-white transition hover:bg-blue-800" href="/products">Browse products</Link>
+          <Button asChild className="mt-4">
+            <Link href="/products">Browse products</Link>
+          </Button>
         </div>
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <form className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" action={checkoutAction}>
-            <div className="grid gap-2">
-              <label className="text-sm font-bold text-slate-500" htmlFor="email">Email</label>
-              <input className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" id="email" name="email" type="email" required defaultValue={user?.email ?? ""} />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-bold text-slate-500" htmlFor="full_name">Full name</label>
-              <input className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" id="full_name" name="full_name" required defaultValue={user?.name ?? ""} />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-bold text-slate-500" htmlFor="address">Address</label>
-              <textarea className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" id="address" name="address" required rows={4} />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="grid gap-2">
-                <label className="text-sm font-bold text-slate-500" htmlFor="city">City</label>
-                <input className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" id="city" name="city" required />
-              </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-bold text-slate-500" htmlFor="country">Country</label>
-                <input className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" id="country" name="country" required defaultValue="Malaysia" />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-bold text-slate-500" htmlFor="phone">Phone</label>
-              <input className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100" id="phone" name="phone" />
-            </div>
-            <button className="inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-bold text-white transition hover:bg-blue-800" type="submit">Create Demo Order</button>
-          </form>
+          <CheckoutForm action={checkoutAction} defaults={{ email: user?.email ?? "", full_name: user?.name ?? "" }} />
 
-          <aside className="grid gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-extrabold text-slate-950">Order Summary</h2>
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
             {cart.items.map((item) => (
               <div className="flex justify-between gap-3 border-t border-slate-200 pt-3" key={item.product.id}>
                 <span>{item.quantity} x {item.product.name}</span>
@@ -77,7 +57,8 @@ async function CheckoutContent() {
               <span>Subtotal</span>
               <strong>{formatter.format(cart.subtotal)}</strong>
             </div>
-          </aside>
+            </CardContent>
+          </Card>
         </div>
       )}
     </>
