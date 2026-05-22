@@ -9,6 +9,8 @@ class UserRead(BaseModel):
     id: int
     email: str
     name: str | None = None
+    is_superadmin: bool = False
+    is_active: bool = True
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

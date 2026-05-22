@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.ai import router as ai_router
+from api.routes.admin import router as admin_router
 from api.routes.cart import router as cart_router
 from api.routes.order import router as order_router
 from api.routes.product import router as product_router
@@ -33,6 +34,7 @@ app.include_router(product_router, prefix="/products", tags=["products"])
 app.include_router(user_router, prefix="/users", tags=["users"])
 app.include_router(cart_router, prefix="/cart", tags=["cart"])
 app.include_router(order_router, tags=["orders"])
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 
 @app.on_event("startup")

@@ -50,6 +50,11 @@ async function SiteHeader() {
         <Button asChild variant="ghost" size="sm">
           <Link href={user ? "/account" : "/signin"}>{user ? "Account" : "Login"}</Link>
         </Button>
+        {user?.is_superadmin ? (
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/admin">Admin</Link>
+          </Button>
+        ) : null}
         <Button asChild variant="outline" size="sm" className="relative">
           <Link href="/cart" aria-label={`Cart with ${itemCount} items`}>
             <ShoppingCart />

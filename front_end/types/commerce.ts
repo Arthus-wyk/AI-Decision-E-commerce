@@ -4,6 +4,8 @@ export type User = {
   id: number;
   email: string;
   name?: string | null;
+  is_superadmin: boolean;
+  is_active: boolean;
   created_at?: string | null;
 };
 
@@ -42,4 +44,27 @@ export type CartDraft = {
   product_id: number;
   quantity: number;
   rationale: string;
+};
+
+export type AdminOverview = {
+  product_count: number;
+  active_product_count: number;
+  user_count: number;
+  active_user_count: number;
+  order_count: number;
+  revenue_subtotal: number;
+};
+
+export type AdminUserList = {
+  items: User[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type AdminOrderList = {
+  items: Order[];
+  total: number;
+  page: number;
+  page_size: number;
 };

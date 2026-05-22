@@ -6,6 +6,7 @@ from schemas.commerce import AuthRequest, AuthResponse, UserRead
 from service.commerce_service import (
     create_session,
     delete_session,
+    apply_superadmin_bootstrap,
     get_user_by_token,
     hash_password,
     merge_guest_cart,
@@ -23,7 +24,10 @@ def current_user(
     token = None
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization.split(" ", 1)[1].strip()
-    return get_user_by_token(db, token)
+    user = get_user_by_token(db, token)
+    if user is not None:
+        return apply_superadmin_bootstrap(db, user)
+    return None
 
 
 @router.post("/signup", response_model=AuthResponse)
@@ -36,6 +40,7 @@ def signup(payload: AuthRequest, db: Session = Depends(get_product_db)) -> AuthR
     db.add(user)
     db.commit()
     db.refresh(user)
+    user = apply_superadmin_bootstrap(db, user)
     merge_guest_cart(db, user=user, guest_id=payload.guest_id)
     auth_session = create_session(db, user)
     return AuthResponse(user=user, session_token=auth_session.token)
@@ -47,6 +52,9 @@ def login(payload: AuthRequest, db: Session = Depends(get_product_db)) -> AuthRe
     user = db.query(User).filter(User.email == email).first()
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="This account has been deactivated.")
+    user = apply_superadmin_bootstrap(db, user)
     merge_guest_cart(db, user=user, guest_id=payload.guest_id)
     auth_session = create_session(db, user)
     return AuthResponse(user=user, session_token=auth_session.token)

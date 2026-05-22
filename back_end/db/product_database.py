@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine, text
 from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 from datetime import datetime
 
@@ -40,6 +40,8 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     name = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
+    is_superadmin = Column(Boolean, nullable=False, default=False)
+    is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     sessions = relationship("AuthSession", back_populates="user", cascade="all, delete-orphan")
@@ -134,8 +136,18 @@ class OrderItem(Base):
     product = relationship("Product")
 
 
+def _add_missing_columns() -> None:
+    with engine.begin() as connection:
+        user_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(users)")).fetchall()}
+        if "is_superadmin" not in user_columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN is_superadmin BOOLEAN NOT NULL DEFAULT 0"))
+        if "is_active" not in user_columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+
+
 def init_product_db() -> None:
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
 
 
 def get_product_db() -> Generator[Session, None, None]:

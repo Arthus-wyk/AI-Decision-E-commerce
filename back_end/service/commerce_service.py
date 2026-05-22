@@ -1,11 +1,30 @@
 import hashlib
 import hmac
+import os
 import secrets
+from pathlib import Path
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from db.product_database import AuthSession, Cart, CartItem, Favorite, Order, OrderItem, Product, User
+
+
+def _env_value(name: str) -> str:
+    value = os.getenv(name)
+    if value is not None:
+        return value
+    env_path = Path(__file__).resolve().parents[1] / ".env"
+    if not env_path.exists():
+        return ""
+    for line in env_path.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, raw_value = stripped.split("=", 1)
+        if key.strip() == name:
+            return raw_value.strip().strip('"').strip("'")
+    return ""
 
 
 def hash_password(password: str) -> str:
@@ -30,6 +49,19 @@ def normalize_email(email: str) -> str:
     return value
 
 
+def get_superadmin_emails() -> set[str]:
+    raw = _env_value("SUPERADMIN_EMAILS")
+    return {normalize_email(email) for email in raw.split(",") if email.strip()}
+
+
+def apply_superadmin_bootstrap(db: Session, user: User) -> User:
+    if user.email in get_superadmin_emails() and not user.is_superadmin:
+        user.is_superadmin = True
+        db.commit()
+        db.refresh(user)
+    return user
+
+
 def create_session(db: Session, user: User) -> AuthSession:
     auth_session = AuthSession(token=secrets.token_urlsafe(32), user_id=user.id)
     db.add(auth_session)
@@ -43,6 +75,8 @@ def get_user_by_token(db: Session, token: str | None) -> User | None:
         return None
     auth_session = db.query(AuthSession).filter(AuthSession.token == token).first()
     if auth_session is None:
+        return None
+    if not auth_session.user.is_active:
         return None
     return auth_session.user
 
