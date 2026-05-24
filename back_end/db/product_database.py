@@ -114,7 +114,7 @@ class Order(Base):
     city = Column(String, nullable=False)
     country = Column(String, nullable=False)
     phone = Column(String, nullable=True)
-    status = Column(String, nullable=False, default="demo_created")
+    status = Column(String, nullable=False, default="created")
     subtotal = Column(Float, nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -143,6 +143,7 @@ def _add_missing_columns() -> None:
             connection.execute(text("ALTER TABLE users ADD COLUMN is_superadmin BOOLEAN NOT NULL DEFAULT 0"))
         if "is_active" not in user_columns:
             connection.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+        connection.execute(text("UPDATE orders SET status = 'created' WHERE status = 'demo_created'"))
 
 
 def init_product_db() -> None:

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { BadgeCheck } from "lucide-react";
 
 import { updateUserAction } from "@/actions/admin";
@@ -9,10 +10,19 @@ import { numberOf, optionalBool, valueOf, type AdminSearchParams } from "@/app/a
 import { StatusPill } from "@/app/admin/_components/status-pill";
 import { getAdminUsers } from "@/lib/api";
 import type { User } from "@/types/commerce";
+import { DataTableSkeleton } from "@/app/admin/_components/skeletons";
 
 type PageProps = { searchParams: Promise<AdminSearchParams> };
 
-export default async function AdminUsersPage({ searchParams }: PageProps) {
+export default function AdminUsersPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<DataTableSkeleton />}>
+      <UsersTable searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function UsersTable({ searchParams }: PageProps) {
   const params = await searchParams;
   const currentUser = await getCurrentUser();
   const q = valueOf(params, "q");
@@ -125,6 +135,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         },
       ]}
       emptyLabel="No users match the current filters."
+      getRowKey={(user) => user.id}
     />
   );
 }

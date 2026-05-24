@@ -26,12 +26,19 @@ export default function RootLayout({
         <Suspense fallback={<HeaderSkeleton />}>
           <SiteHeader />
         </Suspense>
-        <ShoppingAssistantSheet floating />
+        <Suspense fallback={null}>
+          <AssistantMount />
+        </Suspense>
         <Toaster />
         {children}
       </body>
     </html>
   );
+}
+
+async function AssistantMount() {
+  const user = await getCurrentUser();
+  return <ShoppingAssistantSheet floating userId={user?.id ?? null} isSuperadmin={Boolean(user?.is_superadmin)} />;
 }
 
 async function SiteHeader() {

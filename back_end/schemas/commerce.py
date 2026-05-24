@@ -46,6 +46,16 @@ class CartItemRequest(BaseModel):
     guest_id: str | None = None
 
 
+class BulkCartItemRequest(BaseModel):
+    product_id: int
+    quantity: int = Field(default=1, ge=1, le=99)
+
+
+class BulkCartRequest(BaseModel):
+    items: list[BulkCartItemRequest] = Field(..., min_length=1, max_length=24)
+    guest_id: str | None = None
+
+
 class CartQuantityRequest(BaseModel):
     quantity: int = Field(..., ge=0, le=99)
     guest_id: str | None = None

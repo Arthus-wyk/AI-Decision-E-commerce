@@ -18,6 +18,9 @@ def list_products(
     brand: str | None = Query(default=None),
     min_price: float | None = Query(default=None, ge=0),
     max_price: float | None = Query(default=None, ge=0),
+    rating: float | None = Query(default=None, ge=0, le=5),
+    min_rating: float | None = Query(default=None, ge=0, le=5),
+    max_rating: float | None = Query(default=None, ge=0, le=5),
     in_stock: bool | None = Query(default=None),
     sort: Literal["newest", "price_asc", "price_desc", "rating_desc"] | None = Query(
         default="newest"
@@ -31,6 +34,11 @@ def list_products(
             status_code=422,
             detail="min_price must be less than or equal to max_price",
         )
+    if min_rating is not None and max_rating is not None and min_rating > max_rating:
+        raise HTTPException(
+            status_code=422,
+            detail="min_rating must be less than or equal to max_rating",
+        )
 
     items, total = product_service.get_products(
         db,
@@ -39,6 +47,9 @@ def list_products(
         brand=brand,
         min_price=min_price,
         max_price=max_price,
+        rating=rating,
+        min_rating=min_rating,
+        max_rating=max_rating,
         in_stock=in_stock,
         sort=sort,
         page=page,

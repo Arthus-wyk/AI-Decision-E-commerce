@@ -32,6 +32,10 @@ export function setAdminProductActive(headers: Headers, id: number, isActive: bo
   });
 }
 
+export function deleteAdminProduct(headers: Headers, id: number): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>(`/admin/products/${id}`, { method: "DELETE", headers });
+}
+
 export function getAdminUsers(headers: Headers, params?: Params): Promise<AdminUserList> {
   return apiFetch<AdminUserList>("/admin/users", { headers, cache: "no-store" }, params);
 }

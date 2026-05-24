@@ -3,7 +3,15 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-  return <aside className={cn("border-b border-blue-100 bg-white md:min-h-[calc(100vh-4rem)] md:w-64 md:border-b-0 md:border-r", className)} {...props} />;
+  return (
+    <aside
+      className={cn(
+        "border-b border-blue-100 bg-white md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:w-64 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 function SidebarHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

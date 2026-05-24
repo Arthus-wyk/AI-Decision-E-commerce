@@ -1,11 +1,21 @@
+import { Suspense } from "react";
 import type React from "react";
 import { Boxes, CircleDollarSign, ShoppingBag, Users } from "lucide-react";
 
 import { authHeaders } from "@/actions/shared";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAdminOverview } from "@/lib/api";
+import { OverviewSkeleton } from "@/app/admin/_components/skeletons";
 
-export default async function AdminOverviewPage() {
+export default function AdminOverviewPage() {
+  return (
+    <Suspense fallback={<OverviewSkeleton />}>
+      <OverviewContent />
+    </Suspense>
+  );
+}
+
+async function OverviewContent() {
   const overview = await getAdminOverview(await authHeaders());
 
   return (

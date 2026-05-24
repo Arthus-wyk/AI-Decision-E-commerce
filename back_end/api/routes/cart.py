@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from api.routes.user import current_user
 from db.product_database import Cart, Favorite, Product, User, get_product_db
-from schemas.commerce import CartItemRequest, CartQuantityRequest, CartRead, GuestRequest
+from schemas.commerce import BulkCartRequest, CartItemRequest, CartQuantityRequest, CartRead, GuestRequest
 from schemas.product import ProductRead
 from service.commerce_service import add_cart_item, cart_to_payload, clear_cart, find_cart, set_cart_quantity
 
@@ -32,6 +32,24 @@ def add_item(
         product_id=payload.product_id,
         quantity=payload.quantity,
     )
+    return cart_to_payload(cart)
+
+
+@router.post("/items/bulk", response_model=CartRead)
+def add_items(
+    payload: BulkCartRequest,
+    user: User | None = Depends(current_user),
+    db: Session = Depends(get_product_db),
+) -> dict:
+    cart = None
+    for item in payload.items:
+        cart = add_cart_item(
+            db,
+            user=user,
+            guest_id=None if user else payload.guest_id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+        )
     return cart_to_payload(cart)
 
 

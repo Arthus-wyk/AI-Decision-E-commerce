@@ -10,6 +10,7 @@ export {
 } from "./products";
 export {
   createAdminProduct,
+  deleteAdminProduct,
   getAdminOrders,
   getAdminOverview,
   getAdminProducts,

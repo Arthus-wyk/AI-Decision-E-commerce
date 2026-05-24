@@ -28,6 +28,9 @@ export type ProductQueryParams = {
   brand?: string;
   min_price?: string | number;
   max_price?: string | number;
+  rating?: string | number;
+  min_rating?: string | number;
+  max_rating?: string | number;
   in_stock?: boolean;
   sort?: "newest" | "price_asc" | "price_desc" | "rating_desc";
   page?: number;

@@ -6,7 +6,7 @@ from schemas.commerce import OrderRead, UserRead
 from schemas.product import ProductCreate, ProductListResponse, ProductUpdate
 
 
-OrderStatus = Literal["demo_created", "processing", "shipped", "cancelled"]
+OrderStatus = Literal["created", "processing", "shipped", "cancelled"]
 
 
 class AdminOverview(BaseModel):

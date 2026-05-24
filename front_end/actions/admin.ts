@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import {
   createAdminProduct,
+  deleteAdminProduct,
   setAdminProductActive,
   updateAdminOrder,
   updateAdminProduct,
@@ -42,7 +43,7 @@ const productSchema = z.object({
 });
 
 const idSchema = z.coerce.number().int().positive();
-const statusSchema = z.enum(["demo_created", "processing", "shipped", "cancelled"]);
+const statusSchema = z.enum(["created", "processing", "shipped", "cancelled"]);
 
 function productInput(formData: FormData) {
   return productSchema.parse({
@@ -99,6 +100,20 @@ export async function setProductActiveAction(_state: ActionState, formData: Form
     return { ok: true, message: isActive ? "Product activated." : "Product deactivated." };
   } catch (error) {
     return actionError(error, "Could not update product status.");
+  }
+}
+
+export async function deleteProductAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const id = idSchema.parse(formValue(formData, "id"));
+    await deleteAdminProduct(await authHeaders(), id);
+    revalidatePath("/admin");
+    revalidatePath("/admin/overview");
+    revalidatePath("/admin/products");
+    revalidatePath("/products");
+    return { ok: true, message: "Product deleted." };
+  } catch (error) {
+    return actionError(error, "Could not delete product.");
   }
 }
 

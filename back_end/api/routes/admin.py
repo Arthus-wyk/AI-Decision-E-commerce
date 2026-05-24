@@ -5,7 +5,7 @@ from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from api.routes.user import current_user
-from db.product_database import Order, Product, User, get_product_db
+from db.product_database import CartItem, Favorite, Order, OrderItem, Product, User, get_product_db
 from schemas.admin import (
     AdminOrderList,
     AdminOrderRead,
@@ -141,6 +141,32 @@ def set_product_active(
     return update_product(product_id, AdminProductUpdate(is_active=payload.is_active), admin, db)
 
 
+@router.delete("/products/{product_id}")
+def delete_product(
+    product_id: int,
+    _: User = Depends(require_superadmin),
+    db: Session = Depends(get_product_db),
+) -> dict:
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found.")
+
+    is_referenced = (
+        db.query(OrderItem).filter(OrderItem.product_id == product_id).first() is not None
+        or db.query(CartItem).filter(CartItem.product_id == product_id).first() is not None
+        or db.query(Favorite).filter(Favorite.product_id == product_id).first() is not None
+    )
+    if is_referenced:
+        raise HTTPException(
+            status_code=409,
+            detail="This product has cart, favorite, or order history. Deactivate it instead.",
+        )
+
+    db.delete(product)
+    db.commit()
+    return {"message": "Product deleted."}
+
+
 @router.get("/users", response_model=AdminUserList)
 def list_users(
     q: str | None = Query(default=None),
@@ -198,7 +224,7 @@ def update_user(
 @router.get("/orders", response_model=AdminOrderList)
 def list_orders(
     q: str | None = Query(default=None),
-    status: Literal["all", "demo_created", "processing", "shipped", "cancelled"] = Query(default="all"),
+    status: Literal["all", "created", "processing", "shipped", "cancelled"] = Query(default="all"),
     sort: Literal["newest", "oldest", "subtotal_asc", "subtotal_desc"] = Query(default="newest"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),

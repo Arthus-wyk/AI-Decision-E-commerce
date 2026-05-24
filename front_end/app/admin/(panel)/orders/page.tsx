@@ -1,17 +1,24 @@
-import { updateOrderStatusAction } from "@/actions/admin";
+import { Suspense } from "react";
+
 import { authHeaders } from "@/actions/shared";
 import { DataTable, type DataTableColumn } from "@/app/admin/_components/data-table";
 import { numberOf, valueOf, type AdminSearchParams } from "@/app/admin/_components/page-utils";
-import { ActionForm } from "@/components/ActionForm";
-import { Button } from "@/components/ui/button";
 import { getAdminOrders } from "@/lib/api";
 import type { Order } from "@/types/commerce";
-
-const statuses = ["demo_created", "processing", "shipped", "cancelled"] as const;
+import { DataTableSkeleton } from "@/app/admin/_components/skeletons";
+import { OrderStatusForm } from "@/app/admin/_components/order-status-form";
 
 type PageProps = { searchParams: Promise<AdminSearchParams> };
 
-export default async function AdminOrdersPage({ searchParams }: PageProps) {
+export default function AdminOrdersPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<DataTableSkeleton />}>
+      <OrdersTable searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function OrdersTable({ searchParams }: PageProps) {
   const params = await searchParams;
   const q = valueOf(params, "q");
   const sort = valueOf(params, "sort", "newest");
@@ -52,21 +59,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
     {
       key: "status",
       header: "Status",
-      cell: (order) => (
-        <ActionForm action={updateOrderStatusAction} successLabel="Order updated" className="flex min-w-56 gap-2">
-          <input type="hidden" name="id" value={order.id} />
-          <select name="status" defaultValue={order.status} className="h-9 flex-1 rounded-md border border-blue-200 bg-white px-2 text-sm">
-            {statuses.map((item) => (
-              <option key={item} value={item}>
-                {item.replace("_", " ")}
-              </option>
-            ))}
-          </select>
-          <Button type="submit" size="sm">
-            Save
-          </Button>
-        </ActionForm>
-      ),
+      cell: (order) => <OrderStatusForm orderId={order.id} status={order.status} />,
     },
   ];
 
@@ -94,7 +87,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           value: status,
           options: [
             { label: "All statuses", value: "all" },
-            { label: "Demo created", value: "demo_created" },
+            { label: "Created", value: "created" },
             { label: "Processing", value: "processing" },
             { label: "Shipped", value: "shipped" },
             { label: "Cancelled", value: "cancelled" },
@@ -102,6 +95,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         },
       ]}
       emptyLabel="No orders match the current filters."
+      getRowKey={(order) => order.id}
     />
   );
 }

@@ -15,6 +15,18 @@ const cartItemSchema = z.object({
   quantity: z.coerce.number().int().min(1, "Quantity must be at least 1.").max(99, "Quantity must be 99 or less."),
 });
 
+const bulkCartSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        product_id: z.number().int().positive(),
+        quantity: z.number().int().min(1).max(99),
+      }),
+    )
+    .min(1)
+    .max(24),
+});
+
 const cartQuantitySchema = z.object({
   productId: z.coerce.number().int().positive("Choose a valid product."),
   quantity: z.coerce.number().int().min(0, "Quantity cannot be negative.").max(99, "Quantity must be 99 or less."),
@@ -51,9 +63,32 @@ export async function addToCartAction(_state: ActionState, formData: FormData): 
       }),
     });
     revalidatePath("/", "layout");
+    revalidatePath("/cart");
     return { ok: true, message: "Added to cart.", href: "/cart", hrefLabel: "Go to cart" };
   } catch (error) {
     return actionError(error, "Could not add this product to cart.");
+  }
+}
+
+export async function bulkAddToCartAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const parsed = bulkCartSchema.parse({
+      items: JSON.parse(formValue(formData, "items") || "[]"),
+    });
+    const headers = await authHeaders();
+    await apiFetch<Cart>("/cart/items/bulk", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        ...parsed,
+        guest_id: headers.Authorization ? undefined : await getGuestId(),
+      }),
+    });
+    revalidatePath("/", "layout");
+    revalidatePath("/cart");
+    return { ok: true, message: `${parsed.items.length} item${parsed.items.length === 1 ? "" : "s"} added to cart.`, href: "/cart", hrefLabel: "Go to cart" };
+  } catch (error) {
+    return actionError(error, "Could not add these products to cart.");
   }
 }
 
@@ -73,6 +108,7 @@ export async function updateCartItemAction(_state: ActionState, formData: FormDa
       }),
     });
     revalidatePath("/", "layout");
+    revalidatePath("/cart");
     return { ok: true, message: quantity === 0 ? "Item removed." : "Cart updated.", href: "/cart", hrefLabel: "View cart" };
   } catch (error) {
     return actionError(error, "Could not update the cart.");
@@ -89,6 +125,7 @@ export async function removeCartItemAction(_state: ActionState, formData: FormDa
       headers.Authorization ? undefined : { guest_id: await getGuestId() },
     );
     revalidatePath("/", "layout");
+    revalidatePath("/cart");
     return { ok: true, message: "Item removed from cart.", href: "/cart", hrefLabel: "View cart" };
   } catch (error) {
     return actionError(error, "Could not remove this item.");
@@ -106,6 +143,7 @@ export async function clearCartAction(_state: ActionState, _formData: FormData):
       body: JSON.stringify({ guest_id: headers.Authorization ? undefined : await getGuestId() }),
     });
     revalidatePath("/", "layout");
+    revalidatePath("/cart");
     return { ok: true, message: "Cart cleared." };
   } catch (error) {
     return actionError(error, "Could not clear the cart.");

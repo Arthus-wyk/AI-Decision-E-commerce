@@ -35,6 +35,7 @@ export function DataTable<T>({
   filters = [],
   createSlot,
   emptyLabel = "No records found.",
+  getRowKey,
 }: {
   title: string;
   description: string;
@@ -49,6 +50,7 @@ export function DataTable<T>({
   filters?: DataTableFilter[];
   createSlot?: React.ReactNode;
   emptyLabel?: string;
+  getRowKey?: (item: T, index: number) => React.Key;
 }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
@@ -62,7 +64,7 @@ export function DataTable<T>({
         {createSlot}
       </CardHeader>
       <CardContent className="space-y-4">
-        <form className="grid gap-3 rounded-md border border-blue-100 bg-blue-50/40 p-3 lg:grid-cols-[minmax(220px,1fr)_180px_repeat(2,160px)_auto]">
+        <form className="grid gap-3 rounded-md border border-blue-100 bg-blue-50/40 p-3 lg:grid-cols-[minmax(220px,1fr)_180px_repeat(3,150px)_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input name="q" defaultValue={search ?? ""} placeholder="Search" className="pl-9" />
@@ -83,7 +85,13 @@ export function DataTable<T>({
               ))}
             </select>
           ))}
-          <input type="hidden" name="page_size" value={pageSize} />
+          <select name="page_size" defaultValue={String(pageSize)} className="h-10 rounded-md border border-blue-200 bg-white px-3 text-sm text-blue-950 shadow-sm" aria-label="Rows per page">
+            {[10, 25, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size} rows
+              </option>
+            ))}
+          </select>
           <Button type="submit">Apply</Button>
         </form>
 
@@ -100,7 +108,7 @@ export function DataTable<T>({
           <TableBody>
             {items.length ? (
               items.map((item, index) => (
-                <TableRow key={index}>
+                <TableRow key={getRowKey ? getRowKey(item, index) : index}>
                   {columns.map((column) => (
                     <TableCell key={column.key} className={column.className}>
                       {column.cell(item)}

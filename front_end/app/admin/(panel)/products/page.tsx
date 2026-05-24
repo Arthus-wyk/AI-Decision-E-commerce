@@ -1,4 +1,6 @@
-import { setProductActiveAction } from "@/actions/admin";
+import { Suspense } from "react";
+
+import { deleteProductAction, setProductActiveAction } from "@/actions/admin";
 import { authHeaders } from "@/actions/shared";
 import { ConfirmAction } from "@/app/admin/_components/confirm-action";
 import { DataTable, type DataTableColumn } from "@/app/admin/_components/data-table";
@@ -7,10 +9,19 @@ import { ProductCreateForm, ProductEditForm } from "@/app/admin/_components/prod
 import { StatusPill } from "@/app/admin/_components/status-pill";
 import { getAdminProducts } from "@/lib/api";
 import type { Product } from "@/types/product";
+import { DataTableSkeleton } from "@/app/admin/_components/skeletons";
 
 type PageProps = { searchParams: Promise<AdminSearchParams> };
 
-export default async function AdminProductsPage({ searchParams }: PageProps) {
+export default function AdminProductsPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<DataTableSkeleton />}>
+      <ProductsTable searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ProductsTable({ searchParams }: PageProps) {
   const params = await searchParams;
   const q = valueOf(params, "q");
   const sort = valueOf(params, "sort", "newest");
@@ -45,14 +56,24 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       header: "Actions",
       className: "text-right",
       cell: (product) => (
-        <ConfirmAction
-          action={setProductActiveAction}
-          title={product.is_active ? "Deactivate product?" : "Activate product?"}
-          description={product.is_active ? "This removes the product from the customer catalog." : "This returns the product to the customer catalog."}
-          fields={{ id: product.id, is_active: String(!product.is_active) }}
-          label={product.is_active ? "Deactivate" : "Activate"}
-          variant={product.is_active ? "destructive" : "outline"}
-        />
+        <div className="flex justify-end gap-2">
+          <ConfirmAction
+            action={setProductActiveAction}
+            title={product.is_active ? "Deactivate product?" : "Activate product?"}
+            description={product.is_active ? "This removes the product from the customer catalog." : "This returns the product to the customer catalog."}
+            fields={{ id: product.id, is_active: String(!product.is_active) }}
+            label={product.is_active ? "Deactivate" : "Activate"}
+            variant={product.is_active ? "destructive" : "outline"}
+          />
+          <ConfirmAction
+            action={deleteProductAction}
+            title="Delete product?"
+            description="This permanently deletes the product when it has no cart, favorite, or order history. Use deactivate for historical products."
+            fields={{ id: product.id }}
+            label="Delete"
+            variant="destructive"
+          />
+        </div>
       ),
     },
   ];
@@ -90,6 +111,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       ]}
       createSlot={<ProductCreateForm />}
       emptyLabel="No products match the current filters."
+      getRowKey={(product) => product.id}
     />
   );
 }

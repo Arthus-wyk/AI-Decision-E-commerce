@@ -21,6 +21,9 @@ def get_products(
     brand: str | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
+    rating: float | None = None,
+    min_rating: float | None = None,
+    max_rating: float | None = None,
     in_stock: bool | None = None,
     sort: SortValue | None = None,
     page: int = 1,
@@ -50,6 +53,15 @@ def get_products(
 
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
+
+    if rating is not None:
+        query = query.filter(Product.rating == rating)
+
+    if min_rating is not None:
+        query = query.filter(Product.rating >= min_rating)
+
+    if max_rating is not None:
+        query = query.filter(Product.rating <= max_rating)
 
     if in_stock is True:
         query = query.filter(Product.stock_quantity > 0)

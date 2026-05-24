@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreditCard } from "lucide-react";
-import { useActionState, useEffect } from "react";
+import { startTransition, useActionState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -33,6 +33,8 @@ export function CheckoutForm({ action, defaults }: CheckoutFormProps) {
   const [state, formAction] = useActionState(action, initialActionState);
   const {
     register,
+    handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
@@ -43,6 +45,22 @@ export function CheckoutForm({ action, defaults }: CheckoutFormProps) {
     mode: "onBlur",
   });
 
+  function submit(values: CheckoutValues) {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.set(key, value ?? "");
+    });
+    reset({
+      email: defaults.email ?? "",
+      full_name: defaults.full_name ?? "",
+      country: "Malaysia",
+      address: "",
+      city: "",
+      phone: "",
+    });
+    startTransition(() => formAction(formData));
+  }
+
   useEffect(() => {
     if (state.message && !state.ok) {
       toast.error(state.message);
@@ -50,7 +68,7 @@ export function CheckoutForm({ action, defaults }: CheckoutFormProps) {
   }, [state]);
 
   return (
-    <form className="grid gap-4 rounded-lg border border-blue-100 bg-white p-5 shadow-sm" action={formAction}>
+    <form className="grid gap-4 rounded-lg border border-blue-100 bg-white p-5 shadow-sm" autoComplete="off" onSubmit={handleSubmit(submit)}>
       <div className="grid gap-2">
         <Label htmlFor="email">Email</Label>
         <Input id="email" type="email" autoComplete="email" {...register("email")} />
@@ -63,24 +81,24 @@ export function CheckoutForm({ action, defaults }: CheckoutFormProps) {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="address">Address</Label>
-        <Textarea id="address" rows={4} autoComplete="street-address" {...register("address")} />
+        <Textarea id="address" rows={4} autoComplete="new-password" {...register("address")} />
         {errors.address ? <p className="text-sm font-medium text-red-600">{errors.address.message}</p> : null}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="city">City</Label>
-          <Input id="city" autoComplete="address-level2" {...register("city")} />
+          <Input id="city" autoComplete="new-password" {...register("city")} />
           {errors.city ? <p className="text-sm font-medium text-red-600">{errors.city.message}</p> : null}
         </div>
         <div className="grid gap-2">
           <Label htmlFor="country">Country</Label>
-          <Input id="country" autoComplete="country-name" {...register("country")} />
+          <Input id="country" autoComplete="new-password" {...register("country")} />
           {errors.country ? <p className="text-sm font-medium text-red-600">{errors.country.message}</p> : null}
         </div>
       </div>
       <div className="grid gap-2">
         <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" autoComplete="tel" {...register("phone")} />
+        <Input id="phone" autoComplete="new-password" {...register("phone")} />
       </div>
       <Button type="submit" disabled={isSubmitting}>
         <CreditCard />
