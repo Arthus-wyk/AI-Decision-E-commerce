@@ -1,11 +1,11 @@
 import {
   convertToModelMessages,
-  createGateway,
   streamText,
   stepCountIs,
   tool,
   type UIMessage,
 } from "ai";
+import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 
 import { cookies } from "next/headers";
@@ -17,8 +17,7 @@ import type { Product, ProductQueryParams } from "@/types/product";
 
 export const maxDuration = 30;
 
-const assistantModel = process.env.AI_GATEWAY_MODEL || "openai/gpt-5.2";
-const gateway = createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY });
+const assistantModel = process.env.OPENAI_MODEL || "gpt-5.2";
 
 const productSummarySchema = z.object({
   id: z.number(),
@@ -80,9 +79,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid assistant request." }, { status: 400 });
   }
 
-  if (!process.env.AI_GATEWAY_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     return Response.json(
-      { error: "AI_GATEWAY_API_KEY is required to use the shopping assistant." },
+      { error: "OPENAI_API_KEY is required to use the shopping assistant." },
       { status: 500 },
     );
   }
@@ -104,7 +103,7 @@ export async function POST(request: Request) {
 
   const modelMessages = await convertToModelMessages(parsed.data.messages);
   const result = streamText({
-    model: gateway(assistantModel),
+    model: openai(assistantModel),
     messages: modelMessages,
     stopWhen: stepCountIs(6),
     system: [

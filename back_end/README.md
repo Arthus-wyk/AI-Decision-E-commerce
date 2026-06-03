@@ -31,25 +31,25 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Start the API server from inside `back_end`:
 
 ```powershell
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+uvicorn main:app --reload --host 127.0.0.1 --port 8002
 ```
 
 The backend will be available at:
 
 ```text
-http://127.0.0.1:8000
+http://127.0.0.1:8002
 ```
 
 Useful checks:
 
 ```text
-GET http://127.0.0.1:8000/health
-GET http://127.0.0.1:8000/products
-GET http://127.0.0.1:8000/products/meta/categories
-GET http://127.0.0.1:8000/products/meta/brands
+GET http://127.0.0.1:8002/health
+GET http://127.0.0.1:8002/products
+GET http://127.0.0.1:8002/products/meta/categories
+GET http://127.0.0.1:8002/products/meta/brands
 ```
 
-The frontend `front_end/next.config.ts` rewrites `/api/:path*` to `http://localhost:8000/:path*`, so frontend calls like `/api/products` will reach backend route `/products`.
+The frontend `front_end/next.config.ts` rewrites `/api/:path*` to `http://127.0.0.1:8002/:path*`, so frontend calls like `/api/products` will reach backend route `/products`.
 
 ## Pre-fill Product Data
 

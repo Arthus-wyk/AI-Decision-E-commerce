@@ -254,8 +254,37 @@ function MarkdownMessage({ text }: { text: string }) {
 }
 
 export function ShoppingAssistantSheet({ product, floating = false, userId = null, isSuperadmin = false }: ShoppingAssistantSheetProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        {floating ? (
+          <Button
+            className="fixed bottom-6 right-6 z-50 h-14 rounded-full px-5 shadow-xl shadow-blue-700/25 max-sm:bottom-4 max-sm:right-4"
+            aria-label="Open AI shopping assistant"
+          >
+            <Sparkles className="h-5 w-5" />
+            <span className="hidden sm:inline">AI Shop</span>
+          </Button>
+        ) : (
+          <Button type="button" variant="secondary">
+            <Bot />
+            Ask AI Assistant
+          </Button>
+        )}
+      </SheetTrigger>
+      <SheetContent className="max-w-[94vw] bg-white p-0 sm:max-w-[520px]">
+        {open ? <ShoppingAssistantContent product={product} userId={userId} isSuperadmin={isSuperadmin} /> : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ShoppingAssistantContent({ product, userId = null, isSuperadmin = false }: ShoppingAssistantSheetProps) {
   const [input, setInput] = useState(product ? `Compare ${product.name} with a similar product.` : "");
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const restoredStorageKeyRef = useRef<string | null>(null);
   const pathname = usePathname();
   const isAdminContext = pathname.startsWith("/admin");
   const [assistantSessionId, setAssistantSessionId] = useState<string>(() => (userId ? String(userId) : "pending"));
@@ -308,6 +337,10 @@ export function ShoppingAssistantSheet({ product, floating = false, userId = nul
     if (!storageKey) {
       return;
     }
+    if (restoredStorageKeyRef.current === storageKey) {
+      return;
+    }
+    restoredStorageKeyRef.current = storageKey;
     const raw = window.localStorage.getItem(storageKey);
     if (!raw) {
       return;
@@ -342,25 +375,7 @@ export function ShoppingAssistantSheet({ product, floating = false, userId = nul
   }
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        {floating ? (
-          <Button
-            className="fixed bottom-6 right-6 z-50 h-14 rounded-full px-5 shadow-xl shadow-blue-700/25 max-sm:bottom-4 max-sm:right-4"
-            aria-label="Open AI shopping assistant"
-          >
-            <Sparkles className="h-5 w-5" />
-            <span className="hidden sm:inline">AI Shop</span>
-          </Button>
-        ) : (
-          <Button type="button" variant="secondary">
-            <Bot />
-            Ask AI Assistant
-          </Button>
-        )}
-      </SheetTrigger>
-      <SheetContent className="max-w-[94vw] bg-white p-0 sm:max-w-[520px]">
-        <div className="flex min-h-0 flex-1 flex-col bg-white">
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
           <div className="border-b border-slate-200 px-5 py-4">
             <SheetHeader className="pr-10">
               <div className="flex items-center gap-3">
@@ -490,9 +505,7 @@ export function ShoppingAssistantSheet({ product, floating = false, userId = nul
               </div>
             </form>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+    </div>
   );
 }
 

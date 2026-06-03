@@ -1,28 +1,23 @@
-import { Suspense } from "react";
 import { BadgeCheck } from "lucide-react";
 
 import { updateUserAction } from "@/actions/admin";
 import { authHeaders } from "@/actions/shared";
 import { getCurrentUser } from "@/actions/user";
-import { ConfirmAction } from "@/app/admin/_components/confirm-action";
 import { DataTable, type DataTableColumn } from "@/app/admin/_components/data-table";
 import { numberOf, optionalBool, valueOf, type AdminSearchParams } from "@/app/admin/_components/page-utils";
 import { StatusPill } from "@/app/admin/_components/status-pill";
 import { getAdminUsers } from "@/lib/api";
+import { initialActionState } from "@/types/action-state";
 import type { User } from "@/types/commerce";
-import { DataTableSkeleton } from "@/app/admin/_components/skeletons";
 
 type PageProps = { searchParams: Promise<AdminSearchParams> };
 
-export default function AdminUsersPage({ searchParams }: PageProps) {
-  return (
-    <Suspense fallback={<DataTableSkeleton />}>
-      <UsersTable searchParams={searchParams} />
-    </Suspense>
-  );
+async function updateUser(formData: FormData) {
+  "use server";
+  await updateUserAction(initialActionState, formData);
 }
 
-async function UsersTable({ searchParams }: PageProps) {
+export default async function AdminUsersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const currentUser = await getCurrentUser();
   const q = valueOf(params, "q");
@@ -73,23 +68,34 @@ async function UsersTable({ searchParams }: PageProps) {
         const isSelf = user.id === currentUser?.id;
         return (
           <div className="flex min-w-56 justify-end gap-2">
-            <ConfirmAction
-              action={updateUserAction}
-              title={user.is_superadmin ? "Demote superadmin?" : "Promote superadmin?"}
-              description={isSelf ? "You cannot demote your own account." : "This changes access to the protected admin panel."}
-              fields={{ id: user.id, field: "is_superadmin", value: String(!user.is_superadmin) }}
-              label={user.is_superadmin ? "Demote" : "Promote"}
-              disabled={isSelf && user.is_superadmin}
-            />
-            <ConfirmAction
-              action={updateUserAction}
-              title={user.is_active ? "Deactivate user?" : "Activate user?"}
-              description={isSelf ? "You cannot deactivate your own account." : "Deactivated users cannot sign in or use existing sessions."}
-              fields={{ id: user.id, field: "is_active", value: String(!user.is_active) }}
-              label={user.is_active ? "Deactivate" : "Activate"}
-              variant={user.is_active ? "destructive" : "outline"}
-              disabled={isSelf && user.is_active}
-            />
+            <form action={updateUser}>
+              <input type="hidden" name="id" value={user.id} />
+              <input type="hidden" name="field" value="is_superadmin" />
+              <input type="hidden" name="value" value={String(!user.is_superadmin)} />
+              <button
+                className="inline-flex h-9 items-center justify-center rounded-md border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-950 shadow-sm transition-colors hover:bg-blue-50 disabled:pointer-events-none disabled:opacity-50"
+                type="submit"
+                disabled={isSelf && user.is_superadmin}
+              >
+                {user.is_superadmin ? "Demote" : "Promote"}
+              </button>
+            </form>
+            <form action={updateUser}>
+              <input type="hidden" name="id" value={user.id} />
+              <input type="hidden" name="field" value="is_active" />
+              <input type="hidden" name="value" value={String(!user.is_active)} />
+              <button
+                className={
+                  user.is_active
+                    ? "inline-flex h-9 items-center justify-center rounded-md bg-red-600 px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:pointer-events-none disabled:opacity-50"
+                    : "inline-flex h-9 items-center justify-center rounded-md border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-950 shadow-sm transition-colors hover:bg-blue-50 disabled:pointer-events-none disabled:opacity-50"
+                }
+                type="submit"
+                disabled={isSelf && user.is_active}
+              >
+                {user.is_active ? "Deactivate" : "Activate"}
+              </button>
+            </form>
           </div>
         );
       },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -14,11 +14,17 @@ type ActionFormProps = Omit<React.FormHTMLAttributes<HTMLFormElement>, "action">
 export function ActionForm({ action, successLabel, children, ...props }: ActionFormProps) {
   const [state, formAction] = useActionState(action, initialActionState);
   const router = useRouter();
+  const handledStateRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!state.message) {
       return;
     }
+    const stateKey = `${state.ok}:${state.message}:${state.href ?? ""}`;
+    if (handledStateRef.current === stateKey) {
+      return;
+    }
+    handledStateRef.current = stateKey;
     if (state.ok) {
       router.refresh();
       toast.success(successLabel ?? state.message, {
